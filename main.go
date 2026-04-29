@@ -3,20 +3,18 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 )
 
 type Config struct {
-	host string
-	port string
+	addr string
 }
 
 func run(config *Config) error {
 	srv := NewServer(config)
 	httpServer := &http.Server{
-		Addr:    net.JoinHostPort(config.host, config.port),
+		Addr:    config.addr,
 		Handler: srv,
 	}
 	log.Printf("listening on %s\n", httpServer.Addr)
@@ -28,8 +26,7 @@ func run(config *Config) error {
 
 func main() {
 	if err := run(&Config{
-		host: "0.0.0.0",
-		port: "8080",
+		addr: ":8080",
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
