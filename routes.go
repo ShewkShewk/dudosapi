@@ -8,7 +8,7 @@ import (
 func NewServer(config *Config) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET /hello", http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		io.WriteString(writer, "hello!")
+		io.WriteString(writer, "hello world!")
 	}))
 	return mux
 }
