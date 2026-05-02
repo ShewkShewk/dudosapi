@@ -15,8 +15,9 @@ type TabroomConfig struct {
 	password string
 }
 type Config struct {
-	addr          string
-	tabroomConfig *TabroomConfig
+	addr               string
+	tabroomConfig      *TabroomConfig
+	dbConnectionString string
 }
 
 func run(config *Config) error {
@@ -43,6 +44,7 @@ func main() {
 			username: os.Getenv("TABROOM_USERNAME"),
 			password: os.Getenv("TABROOM_PASSWORD"),
 		},
+		dbConnectionString: os.Getenv("DB_CONNECTION_STRING"),
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
