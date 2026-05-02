@@ -1,0 +1,4 @@
+github.com/ShewkShewk/tbapi v0.0.0-20260421022606-c37c63ed4e35 h1:zGQcUDs7KkYtgLiVoF3ZNo5oduLkKRtPvcL4Rm3y0y0=
+github.com/ShewkShewk/tbapi v0.0.0-20260421022606-c37c63ed4e35/go.mod h1:ve0iMuh5OegXVk6smhaSjKM0lnDPW7nendZM2esxzZY=
+github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
+github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
