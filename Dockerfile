@@ -8,6 +8,8 @@ RUN go mod download
 
 COPY *.go ./
 
+COPY internal/ ./internal
+
 RUN CGO_ENABLED=0 GOOS=linux go build -o /dudosapi
 
 EXPOSE 8080
