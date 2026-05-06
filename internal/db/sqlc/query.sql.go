@@ -39,3 +39,17 @@ func (q *Queries) GetLoadedTournaments(ctx context.Context) ([]GetLoadedTourname
 	}
 	return items, nil
 }
+
+const loadTournament = `-- name: LoadTournament :exec
+INSERT INTO tournaments (id, raw) VALUES ($1, $2)
+`
+
+type LoadTournamentParams struct {
+	ID  int32
+	Raw []byte
+}
+
+func (q *Queries) LoadTournament(ctx context.Context, arg LoadTournamentParams) error {
+	_, err := q.db.Exec(ctx, loadTournament, arg.ID, arg.Raw)
+	return err
+}

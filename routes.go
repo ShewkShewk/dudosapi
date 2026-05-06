@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ShewkShewk/dudosapi/internal/db/sqlc"
@@ -23,6 +25,7 @@ func NewServer(config *Config) (http.Handler, error) {
 		return nil, err
 	}
 	mux.Handle("GET /tournaments", handleGetTournaments(tb, queries))
+	mux.Handle("POST /tournament/{id}/import", handleImportTournaments(tb, queries))
 	return mux, nil
 }
 
@@ -57,7 +60,7 @@ func handleGetTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.Hand
 		}
 		loadedTourns := make(map[int32]string)
 		for _, t := range dbtourns {
-			loadedTourns[t.ID] = t.Name
+			loadedTourns[t.ID] = t.Name.String
 		}
 		tbtourns, err := tb.GetTournaments()
 		if err != nil {
@@ -81,5 +84,37 @@ func handleGetTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.Hand
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+	}
+}
+
+func handleImportTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid tournament id", http.StatusBadRequest)
+			return
+		}
+		tournament, err := tb.GetTournamentData(id)
+		if err != nil {
+			log.Printf("handleImportTournaments: unable to download tournament %v", id)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		raw, err := json.Marshal(tournament)
+		if err != nil {
+			log.Printf("handleImportTournaments: unable to marshal tournament: %v", id)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = queries.LoadTournament(r.Context(), sqlc.LoadTournamentParams{
+			ID:  int32(id),
+			Raw: raw,
+		})
+		if err != nil {
+			log.Printf("handleImportTournaments: unable to save tournament to db: %v", id)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
 	}
 }
