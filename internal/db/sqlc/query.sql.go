@@ -41,7 +41,10 @@ func (q *Queries) GetLoadedTournaments(ctx context.Context) ([]GetLoadedTourname
 }
 
 const loadTournament = `-- name: LoadTournament :exec
-INSERT INTO tournaments (id, raw) VALUES ($1, $2)
+INSERT INTO tournaments (id, raw)
+VALUES ($1, $2)
+ON CONFLICT (id) DO UPDATE
+    SET raw = EXCLUDED.raw
 `
 
 type LoadTournamentParams struct {

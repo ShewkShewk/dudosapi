@@ -25,7 +25,7 @@ func NewServer(config *Config) (http.Handler, error) {
 		return nil, err
 	}
 	mux.Handle("GET /tournaments", handleGetTournaments(tb, queries))
-	mux.Handle("POST /tournament/{id}/import", handleImportTournaments(tb, queries))
+	mux.Handle("POST /tournaments/{id}/import", handleImportTournaments(tb, queries))
 	return mux, nil
 }
 
