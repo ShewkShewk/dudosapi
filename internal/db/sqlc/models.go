@@ -9,8 +9,9 @@ import (
 )
 
 type Tournament struct {
-	ID   int32
-	Date pgtype.Date
-	Name string
-	Json []byte
+	ID          int32
+	Raw         []byte
+	Date        pgtype.Text
+	Name        pgtype.Text
+	UpdatedTime pgtype.Text
 }

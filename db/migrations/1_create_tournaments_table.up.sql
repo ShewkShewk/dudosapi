@@ -1,6 +1,7 @@
 CREATE TABLE tournaments(
     id SERIAL PRIMARY KEY,
-    date DATE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    json jsonb
+    raw jsonb,
+    date TEXT GENERATED ALWAYS AS ( raw->>'start') STORED,
+    name TEXT GENERATED ALWAYS AS ( raw->>'name' ) STORED,
+    updated_time TEXT GENERATED ALWAYS AS ( raw->>'backup_created' ) STORED
 );

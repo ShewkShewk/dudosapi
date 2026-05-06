@@ -7,6 +7,8 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getLoadedTournaments = `-- name: GetLoadedTournaments :many
@@ -15,7 +17,7 @@ SELECT id, name FROM tournaments
 
 type GetLoadedTournamentsRow struct {
 	ID   int32
-	Name string
+	Name pgtype.Text
 }
 
 func (q *Queries) GetLoadedTournaments(ctx context.Context) ([]GetLoadedTournamentsRow, error) {
