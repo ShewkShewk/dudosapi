@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteTournament = `-- name: DeleteTournament :exec
+DELETE FROM tournaments WHERE id = $1
+`
+
+func (q *Queries) DeleteTournament(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deleteTournament, id)
+	return err
+}
+
 const getLoadedTournaments = `-- name: GetLoadedTournaments :many
 SELECT id, name FROM tournaments
 `

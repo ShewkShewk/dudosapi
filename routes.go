@@ -25,7 +25,8 @@ func NewServer(config *Config) (http.Handler, error) {
 		return nil, err
 	}
 	mux.Handle("GET /tournaments", handleGetTournaments(tb, queries))
-	mux.Handle("POST /tournaments/{id}/import", handleImportTournaments(tb, queries))
+	mux.Handle("POST /tournaments/{id}/import", handleImportTournament(tb, queries))
+	mux.Handle("DELETE /tournaments/{id}", handleDeleteTournament(queries))
 	return mux, nil
 }
 
@@ -87,7 +88,7 @@ func handleGetTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.Hand
 	}
 }
 
-func handleImportTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.HandlerFunc {
+func handleImportTournament(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.Atoi(r.PathValue("id"))
 		if err != nil {
@@ -116,5 +117,22 @@ func handleImportTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.H
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+func handleDeleteTournament(queries *sqlc.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid tournament id", http.StatusBadRequest)
+			return
+		}
+		err = queries.DeleteTournament(r.Context(), int32(id))
+		if err != nil {
+			log.Printf("handleDeleteTournament: unable to delete %v", id)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
