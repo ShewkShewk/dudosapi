@@ -21,12 +21,12 @@ func (q *Queries) DeleteTournament(ctx context.Context, id int32) error {
 }
 
 const getLoadedTournaments = `-- name: GetLoadedTournaments :many
-SELECT id, name FROM tournaments
+SELECT id, updated_time FROM tournaments
 `
 
 type GetLoadedTournamentsRow struct {
-	ID   int32
-	Name pgtype.Text
+	ID          int32
+	UpdatedTime pgtype.Text
 }
 
 func (q *Queries) GetLoadedTournaments(ctx context.Context) ([]GetLoadedTournamentsRow, error) {
@@ -38,7 +38,7 @@ func (q *Queries) GetLoadedTournaments(ctx context.Context) ([]GetLoadedTourname
 	var items []GetLoadedTournamentsRow
 	for rows.Next() {
 		var i GetLoadedTournamentsRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(&i.ID, &i.UpdatedTime); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

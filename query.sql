@@ -1,5 +1,5 @@
 -- name: GetLoadedTournaments :many
-SELECT id, name FROM tournaments;
+SELECT id, updated_time FROM tournaments;
 
 -- name: LoadTournament :exec
 INSERT INTO tournaments (id, raw)

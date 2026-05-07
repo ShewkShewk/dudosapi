@@ -61,7 +61,7 @@ func handleGetTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.Hand
 		}
 		loadedTourns := make(map[int32]string)
 		for _, t := range dbtourns {
-			loadedTourns[t.ID] = t.Name.String
+			loadedTourns[t.ID] = t.UpdatedTime.String
 		}
 		tbtourns, err := tb.GetTournaments()
 		if err != nil {
@@ -71,12 +71,13 @@ func handleGetTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.Hand
 		}
 		tournaments := make([]Tournament, len(tbtourns))
 		for i, tourn := range tbtourns {
-			_, loaded := loadedTourns[int32(tourn.Id)]
+			updatedTime, loaded := loadedTourns[int32(tourn.Id)]
 			tournaments[i] = Tournament{
-				Id:     tourn.Id,
-				Date:   tourn.Date.Format(time.DateOnly),
-				Name:   tourn.Name,
-				Loaded: loaded,
+				Id:          tourn.Id,
+				Date:        tourn.Date.Format(time.DateOnly),
+				Name:        tourn.Name,
+				Loaded:      loaded,
+				UpdatedTime: updatedTime,
 			}
 		}
 		err = encode(w, r, http.StatusOK, tournaments)
