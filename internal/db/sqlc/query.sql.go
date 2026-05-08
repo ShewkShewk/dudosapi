@@ -49,6 +49,23 @@ func (q *Queries) GetLoadedTournaments(ctx context.Context) ([]GetLoadedTourname
 	return items, nil
 }
 
+const insertSchool = `-- name: InsertSchool :exec
+INSERT INTO schools(id, name)
+VALUES ($1, $2)
+ON CONFLICT (id) DO UPDATE
+    SET name = EXCLUDED.name
+`
+
+type InsertSchoolParams struct {
+	ID   int32
+	Name pgtype.Text
+}
+
+func (q *Queries) InsertSchool(ctx context.Context, arg InsertSchoolParams) error {
+	_, err := q.db.Exec(ctx, insertSchool, arg.ID, arg.Name)
+	return err
+}
+
 const loadTournament = `-- name: LoadTournament :exec
 INSERT INTO tournaments (id, raw)
 VALUES ($1, $2)

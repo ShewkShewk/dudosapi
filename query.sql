@@ -9,3 +9,9 @@ ON CONFLICT (id) DO UPDATE
 
 -- name: DeleteTournament :exec
 DELETE FROM tournaments WHERE id = $1;
+
+-- name: InsertSchool :exec
+INSERT INTO schools(id, name)
+VALUES ($1, $2)
+ON CONFLICT (id) DO UPDATE
+    SET name = EXCLUDED.name;

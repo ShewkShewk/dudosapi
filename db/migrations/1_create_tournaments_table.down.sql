@@ -1,1 +1,1 @@
-DROP table IF EXISTS tournaments;
+DROP TABLE IF EXISTS tournaments;

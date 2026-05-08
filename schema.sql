@@ -5,3 +5,8 @@ CREATE TABLE tournaments(
     name TEXT GENERATED ALWAYS AS ( raw->>'name' ) STORED,
     updated_time TEXT GENERATED ALWAYS AS ( raw->>'backup_created' ) STORED
 );
+
+CREATE TABLE schools(
+    id SERIAL PRIMARY KEY,
+    name TEXT
+);

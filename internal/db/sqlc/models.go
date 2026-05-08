@@ -8,6 +8,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type School struct {
+	ID   int32
+	Name pgtype.Text
+}
+
 type Tournament struct {
 	ID          int32
 	Raw         []byte
