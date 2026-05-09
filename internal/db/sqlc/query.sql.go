@@ -52,6 +52,35 @@ func (q *Queries) GetLoadedTournaments(ctx context.Context) ([]GetLoadedTourname
 	return items, nil
 }
 
+const insertEntry = `-- name: InsertEntry :exec
+INSERT INTO entries(id, tournament_id, event_id, code, active)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT(id) DO UPDATE
+    SET tournament_id = EXCLUDED.tournament_id,
+        event_id      = EXCLUDED.event_id,
+        code          = EXCLUDED.code,
+        active        = EXCLUDED.active
+`
+
+type InsertEntryParams struct {
+	ID           pgtype.Int4
+	TournamentID pgtype.Int4
+	EventID      pgtype.Int4
+	Code         pgtype.Text
+	Active       pgtype.Bool
+}
+
+func (q *Queries) InsertEntry(ctx context.Context, arg InsertEntryParams) error {
+	_, err := q.db.Exec(ctx, insertEntry,
+		arg.ID,
+		arg.TournamentID,
+		arg.EventID,
+		arg.Code,
+		arg.Active,
+	)
+	return err
+}
+
 const insertEvent = `-- name: InsertEvent :exec
 INSERT INTO events(id, tournament_id, name)
 VALUES ($1, $2, $3)

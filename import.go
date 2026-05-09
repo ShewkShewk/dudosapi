@@ -29,6 +29,11 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 		log.Printf("importTournament: unable to import events for %v %v", tourn.Name, err)
 		return err
 	}
+	err = importEntries(ctx, qtx, tournId, tourn)
+	if err != nil {
+		log.Printf("importTournament: unable to import entries for %v %v", tourn.Name, err)
+		return err
+	}
 	err = tx.Commit(ctx)
 	if err != nil {
 		log.Printf("importTournament: unable to commit import for %v %v", tourn.Name, err)
@@ -78,6 +83,45 @@ func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *
 				},
 			})
 			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn *tbapi.TournamentData) error {
+	for _, school := range tourn.Schools {
+		for _, entry := range school.Entries {
+			entryId, err := strconv.Atoi(entry.Id)
+			if err != nil {
+				log.Printf("importEntries: unable to convert entryId to int %v %v", entry.Id, err)
+				return err
+			}
+			err = qtx.InsertEntry(ctx, sqlc.InsertEntryParams{
+				ID: pgtype.Int4{
+					Int32: int32(entryId),
+					Valid: true,
+				},
+				TournamentID: pgtype.Int4{
+					Int32: tournID,
+					Valid: true,
+				},
+				EventID: pgtype.Int4{
+					Int32: int32(entry.Event),
+					Valid: true,
+				},
+				Code: pgtype.Text{
+					String: entry.Code,
+					Valid:  true,
+				},
+				Active: pgtype.Bool{
+					Bool:  entry.Active == 1,
+					Valid: true,
+				},
+			})
+			if err != nil {
+				log.Printf("importEntries: unable to insert entry for %v %v", entryId, err)
 				return err
 			}
 		}

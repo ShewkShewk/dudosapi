@@ -19,3 +19,12 @@ CREATE TABLE events
     tournament_id SERIAL REFERENCES tournaments (id) ON DELETE CASCADE,
     name          TEXT
 );
+
+CREATE TABLE entries
+(
+    id            SERIAL,
+    tournament_id SERIAL REFERENCES tournaments (id) ON DELETE CASCADE,
+    event_id      SERIAL REFERENCES events (id) ON DELETE CASCADE,
+    code          TEXT,
+    active        BOOLEAN
+);

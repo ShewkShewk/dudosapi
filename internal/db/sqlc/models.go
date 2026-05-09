@@ -8,6 +8,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Entry struct {
+	ID           pgtype.Int4
+	TournamentID pgtype.Int4
+	EventID      pgtype.Int4
+	Code         pgtype.Text
+	Active       pgtype.Bool
+}
+
 type Event struct {
 	ID           int32
 	TournamentID pgtype.Int4
