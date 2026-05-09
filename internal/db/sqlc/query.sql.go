@@ -12,7 +12,9 @@ import (
 )
 
 const deleteTournament = `-- name: DeleteTournament :exec
-DELETE FROM tournaments WHERE id = $1
+DELETE
+FROM tournaments
+WHERE id = $1
 `
 
 func (q *Queries) DeleteTournament(ctx context.Context, id int32) error {
@@ -21,7 +23,8 @@ func (q *Queries) DeleteTournament(ctx context.Context, id int32) error {
 }
 
 const getLoadedTournaments = `-- name: GetLoadedTournaments :many
-SELECT id, updated_time FROM tournaments
+SELECT id, updated_time
+FROM tournaments
 `
 
 type GetLoadedTournamentsRow struct {
@@ -47,6 +50,25 @@ func (q *Queries) GetLoadedTournaments(ctx context.Context) ([]GetLoadedTourname
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertEvent = `-- name: InsertEvent :exec
+INSERT INTO events(id, tournament_id, name)
+VALUES ($1, $2, $3)
+ON CONFLICT (id) DO UPDATE
+    SET tournament_id = EXCLUDED.tournament_id,
+        name          = EXCLUDED.name
+`
+
+type InsertEventParams struct {
+	ID           int32
+	TournamentID pgtype.Int4
+	Name         pgtype.Text
+}
+
+func (q *Queries) InsertEvent(ctx context.Context, arg InsertEventParams) error {
+	_, err := q.db.Exec(ctx, insertEvent, arg.ID, arg.TournamentID, arg.Name)
+	return err
 }
 
 const insertSchool = `-- name: InsertSchool :exec

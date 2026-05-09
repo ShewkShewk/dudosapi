@@ -93,34 +93,35 @@ func handleGetTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.Hand
 func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *sqlc.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.Atoi(r.PathValue("id"))
+		tournId := int32(id)
 		if err != nil {
 			http.Error(w, "invalid tournament id", http.StatusBadRequest)
 			return
 		}
 		tournament, err := tb.GetTournamentData(id)
 		if err != nil {
-			log.Printf("handleImportTournaments: unable to download tournament %v %v", id, err)
+			log.Printf("handleImportTournaments: unable to download tournament %v %v", tournId, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		raw, err := json.Marshal(tournament)
 		if err != nil {
-			log.Printf("handleImportTournaments: unable to marshal tournament: %v %v", id, err)
+			log.Printf("handleImportTournaments: unable to marshal tournament: %v %v", tournId, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		err = queries.LoadTournament(r.Context(), sqlc.LoadTournamentParams{
-			ID:  int32(id),
+			ID:  tournId,
 			Raw: raw,
 		})
 		if err != nil {
-			log.Printf("handleImportTournaments: unable to save raw tournament to db: %v %v", id, err)
+			log.Printf("handleImportTournaments: unable to save raw tournament to db: %v %v", tournId, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = importTournament(r.Context(), conn, queries, tournament)
+		err = importTournament(r.Context(), conn, queries, tournId, tournament)
 		if err != nil {
-			log.Printf("handleImportTournaments: unable to import tournament to db: %v %v", id, err)
+			log.Printf("handleImportTournaments: unable to import tournament to db: %v %v", tournId, err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
