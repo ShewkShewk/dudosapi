@@ -27,6 +27,15 @@ type School struct {
 	Name pgtype.Text
 }
 
+type Student struct {
+	ID         int32
+	SchoolID   pgtype.Int4
+	FirstName  string
+	MiddleName string
+	LastName   string
+	GradYear   int32
+}
+
 type Tournament struct {
 	ID          int32
 	Raw         []byte

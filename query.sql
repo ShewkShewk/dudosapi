@@ -34,3 +34,13 @@ ON CONFLICT(id) DO UPDATE
         event_id      = EXCLUDED.event_id,
         code          = EXCLUDED.code,
         active        = EXCLUDED.active;
+
+-- name: InsertStudent :exec
+INSERT INTO students(id, school_id, first_name, middle_name, last_name, grad_year)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT(id) DO UPDATE
+    SET school_id   = EXCLUDED.school_id,
+        first_name  = EXCLUDED.first_name,
+        middle_name = EXCLUDED.middle_name,
+        last_name   = EXCLUDED.last_name,
+        grad_year   = EXCLUDED.grad_year;

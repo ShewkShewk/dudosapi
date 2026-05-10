@@ -24,6 +24,11 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 		log.Printf("importTournament: unable to import schools for %v %v", tourn.Name, err)
 		return err
 	}
+	err = importStudents(ctx, qtx, tourn)
+	if err != nil {
+		log.Printf("importTournament: unable to import students for %v %v", tourn.Name, err)
+		return err
+	}
 	err = importEvents(ctx, qtx, tournId, tourn)
 	if err != nil {
 		log.Printf("importTournament: unable to import events for %v %v", tourn.Name, err)
@@ -78,6 +83,34 @@ func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *
 				},
 			})
 			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func importStudents(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
+	for _, school := range tourn.Schools {
+		for _, student := range school.Students {
+			studentId, err := strconv.Atoi(student.Id)
+			if err != nil {
+				log.Printf("importStudents: unable to convert studentId %v to int. %v", student.Id, err)
+				return err
+			}
+			err = qtx.InsertStudent(ctx, sqlc.InsertStudentParams{
+				ID: int32(studentId),
+				SchoolID: pgtype.Int4{
+					Int32: int32(school.Chapter),
+					Valid: true,
+				},
+				FirstName:  student.First,
+				MiddleName: student.Middle,
+				LastName:   student.Last,
+				GradYear:   int32(student.GradYear),
+			})
+			if err != nil {
+				log.Printf("importStudent unable to insert student %v %v", student.Id, err)
 				return err
 			}
 		}

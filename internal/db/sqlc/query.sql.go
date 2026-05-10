@@ -117,6 +117,38 @@ func (q *Queries) InsertSchool(ctx context.Context, arg InsertSchoolParams) erro
 	return err
 }
 
+const insertStudent = `-- name: InsertStudent :exec
+INSERT INTO students(id, school_id, first_name, middle_name, last_name, grad_year)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT(id) DO UPDATE
+    SET school_id   = EXCLUDED.school_id,
+        first_name  = EXCLUDED.first_name,
+        middle_name = EXCLUDED.middle_name,
+        last_name   = EXCLUDED.last_name,
+        grad_year   = EXCLUDED.grad_year
+`
+
+type InsertStudentParams struct {
+	ID         int32
+	SchoolID   pgtype.Int4
+	FirstName  string
+	MiddleName string
+	LastName   string
+	GradYear   int32
+}
+
+func (q *Queries) InsertStudent(ctx context.Context, arg InsertStudentParams) error {
+	_, err := q.db.Exec(ctx, insertStudent,
+		arg.ID,
+		arg.SchoolID,
+		arg.FirstName,
+		arg.MiddleName,
+		arg.LastName,
+		arg.GradYear,
+	)
+	return err
+}
+
 const loadTournament = `-- name: LoadTournament :exec
 INSERT INTO tournaments (id, raw)
 VALUES ($1, $2)
