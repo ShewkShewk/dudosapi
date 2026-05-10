@@ -44,13 +44,8 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 
 func importSchools(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
 	for _, school := range tourn.Schools {
-		schoolId, err := strconv.Atoi(school.Id)
-		if err != nil {
-			log.Printf("importSchools: unable to convert %s to school id.", school.Id)
-			continue
-		}
-		err = qtx.InsertSchool(ctx, sqlc.InsertSchoolParams{
-			ID: int32(schoolId),
+		err := qtx.InsertSchool(ctx, sqlc.InsertSchoolParams{
+			ID: int32(school.Chapter),
 			Name: pgtype.Text{
 				String: school.Name,
 				Valid:  true,
