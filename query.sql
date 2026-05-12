@@ -13,20 +13,20 @@ DELETE
 FROM tournaments
 WHERE id = $1;
 
--- name: InsertSchool :exec
+-- name: InsertSchool :batchexec
 INSERT INTO schools(id, name)
 VALUES ($1, $2)
 ON CONFLICT (id) DO UPDATE
     SET name = EXCLUDED.name;
 
--- name: InsertEvent :exec
+-- name: InsertEvent :batchexec
 INSERT INTO events(id, tournament_id, name)
 VALUES ($1, $2, $3)
 ON CONFLICT (id) DO UPDATE
     SET tournament_id = EXCLUDED.tournament_id,
         name          = EXCLUDED.name;
 
--- name: InsertEntry :exec
+-- name: InsertEntry :batchexec
 INSERT INTO entries(id, tournament_id, event_id, code, active)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT(id) DO UPDATE
@@ -35,7 +35,7 @@ ON CONFLICT(id) DO UPDATE
         code          = EXCLUDED.code,
         active        = EXCLUDED.active;
 
--- name: InsertStudent :exec
+-- name: InsertStudent :batchexec
 INSERT INTO students(id, school_id, first_name, middle_name, last_name, grad_year)
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT(id) DO UPDATE

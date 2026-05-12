@@ -48,22 +48,22 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 }
 
 func importSchools(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
-	for _, school := range tourn.Schools {
-		err := qtx.InsertSchool(ctx, sqlc.InsertSchoolParams{
+	batch := make([]sqlc.InsertSchoolParams, len(tourn.Schools))
+	for i, school := range tourn.Schools {
+		batch[i] = sqlc.InsertSchoolParams{
 			ID: int32(school.Chapter),
 			Name: pgtype.Text{
 				String: school.Name,
 				Valid:  true,
 			},
-		})
-		if err != nil {
-			return err
 		}
 	}
-	return nil
+	results := qtx.InsertSchool(ctx, batch)
+	return batchExecErr(results.Exec, results.Close)
 }
 
 func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData) error {
+	var batch []sqlc.InsertEventParams
 	for _, category := range tourn.Categories {
 		for _, event := range category.Events {
 			eventId, err := strconv.Atoi(event.Id)
@@ -71,7 +71,7 @@ func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *
 				log.Printf("importEvents: unable to convert %s to event id", event.Id)
 				return err
 			}
-			err = qtx.InsertEvent(ctx, sqlc.InsertEventParams{
+			batch = append(batch, sqlc.InsertEventParams{
 				ID: int32(eventId),
 				TournamentID: pgtype.Int4{
 					Int32: tournId,
@@ -82,15 +82,14 @@ func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *
 					Valid:  true,
 				},
 			})
-			if err != nil {
-				return err
-			}
 		}
 	}
-	return nil
+	results := qtx.InsertEvent(ctx, batch)
+	return batchExecErr(results.Exec, results.Close)
 }
 
 func importStudents(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
+	var batch []sqlc.InsertStudentParams
 	for _, school := range tourn.Schools {
 		for _, student := range school.Students {
 			studentId, err := strconv.Atoi(student.Id)
@@ -98,7 +97,7 @@ func importStudents(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournam
 				log.Printf("importStudents: unable to convert studentId %v to int. %v", student.Id, err)
 				return err
 			}
-			err = qtx.InsertStudent(ctx, sqlc.InsertStudentParams{
+			batch = append(batch, sqlc.InsertStudentParams{
 				ID: int32(studentId),
 				SchoolID: pgtype.Int4{
 					Int32: int32(school.Chapter),
@@ -109,16 +108,14 @@ func importStudents(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournam
 				LastName:   student.Last,
 				GradYear:   int32(student.GradYear),
 			})
-			if err != nil {
-				log.Printf("importStudent unable to insert student %v %v", student.Id, err)
-				return err
-			}
 		}
 	}
-	return nil
+	results := qtx.InsertStudent(ctx, batch)
+	return batchExecErr(results.Exec, results.Close)
 }
 
 func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn *tbapi.TournamentData) error {
+	var batch []sqlc.InsertEntryParams
 	for _, school := range tourn.Schools {
 		for _, entry := range school.Entries {
 			entryId, err := strconv.Atoi(entry.Id)
@@ -126,7 +123,7 @@ func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn 
 				log.Printf("importEntries: unable to convert entryId to int %v %v", entry.Id, err)
 				return err
 			}
-			err = qtx.InsertEntry(ctx, sqlc.InsertEntryParams{
+			batch = append(batch, sqlc.InsertEntryParams{
 				ID: pgtype.Int4{
 					Int32: int32(entryId),
 					Valid: true,
@@ -148,11 +145,26 @@ func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn 
 					Valid: true,
 				},
 			})
-			if err != nil {
-				log.Printf("importEntries: unable to insert entry for %v %v", entryId, err)
-				return err
-			}
 		}
 	}
-	return nil
+	results := qtx.InsertEntry(ctx, batch)
+	return batchExecErr(results.Exec, results.Close)
+}
+
+func batchExecErr(exec func(func(int, error)), close func() error) error {
+	var batchErr error
+
+	exec(func(i int, err error) {
+		if err != nil && batchErr == nil {
+			batchErr = err
+		}
+	})
+
+	closeErr := close()
+
+	if batchErr != nil {
+		return batchErr
+	}
+
+	return closeErr
 }
