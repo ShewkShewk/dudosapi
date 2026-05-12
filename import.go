@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/ShewkShewk/dudosapi/internal/db/sqlc"
 	"github.com/ShewkShewk/tbapi"
@@ -37,6 +38,11 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 	err = importEntries(ctx, qtx, tournId, tourn)
 	if err != nil {
 		log.Printf("importTournament: unable to import entries for %v %v", tourn.Name, err)
+		return err
+	}
+	err = importRounds(ctx, qtx, tourn)
+	if err != nil {
+		log.Printf("importTournament: unable to import rounds for %v %v", tourn.Name, err)
 		return err
 	}
 	err = tx.Commit(ctx)
@@ -167,6 +173,46 @@ func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn 
 	}
 	studentEntryResults := qtx.InsertStudentEntries(ctx, studentEntryBatch)
 	return batchExecErr(studentEntryResults.Exec, studentEntryResults.Close)
+}
+
+func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
+	var batch []sqlc.InsertRoundParams
+	for _, category := range tourn.Categories {
+		for _, event := range category.Events {
+			eventId, err := strconv.Atoi(event.Id)
+			if err != nil {
+				log.Printf("importRounds: unable to convert event id %v to int", eventId)
+				return err
+			}
+			for _, round := range event.Rounds {
+				roundId, err := strconv.Atoi(round.Id)
+				if err != nil {
+					log.Printf("importRounds: unable to convert round id %v to int", roundId)
+					return err
+				}
+				parsedTime, err := time.Parse("2006-01-02 15:04:05", round.StartTime)
+				if err != nil {
+					log.Printf("importRounds: unable to convert timestamp %v to Timestamp.", round.StartTime)
+					return err
+				}
+				batch = append(batch, sqlc.InsertRoundParams{
+					ID: int32(roundId),
+					EventID: pgtype.Int4{
+						Int32: int32(eventId),
+						Valid: true,
+					},
+					Number: int32(round.Name),
+					StartTime: pgtype.Timestamp{
+						Time:  parsedTime,
+						Valid: true,
+					},
+					Published: round.Published == 1,
+				})
+			}
+		}
+	}
+	results := qtx.InsertRound(ctx, batch)
+	return batchExecErr(results.Exec, results.Close)
 }
 
 func batchExecErr(exec func(func(int, error)), close func() error) error {
