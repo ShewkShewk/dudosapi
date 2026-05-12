@@ -248,3 +248,54 @@ func (b *InsertStudentBatchResults) Close() error {
 	b.closed = true
 	return b.br.Close()
 }
+
+const insertStudentEntries = `-- name: InsertStudentEntries :batchexec
+INSERT INTO student_entries(student_id, entry_id)
+VALUES ($1, $2)
+ON CONFLICT(student_id, entry_id) DO NOTHING
+`
+
+type InsertStudentEntriesBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type InsertStudentEntriesParams struct {
+	StudentID int32
+	EntryID   int32
+}
+
+func (q *Queries) InsertStudentEntries(ctx context.Context, arg []InsertStudentEntriesParams) *InsertStudentEntriesBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.StudentID,
+			a.EntryID,
+		}
+		batch.Queue(insertStudentEntries, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &InsertStudentEntriesBatchResults{br, len(arg), false}
+}
+
+func (b *InsertStudentEntriesBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *InsertStudentEntriesBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}

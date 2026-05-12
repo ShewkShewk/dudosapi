@@ -36,6 +36,11 @@ type Student struct {
 	GradYear   int32
 }
 
+type StudentEntry struct {
+	StudentID int32
+	EntryID   int32
+}
+
 type Tournament struct {
 	ID          int32
 	Raw         []byte

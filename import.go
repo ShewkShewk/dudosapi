@@ -115,7 +115,8 @@ func importStudents(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournam
 }
 
 func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn *tbapi.TournamentData) error {
-	var batch []sqlc.InsertEntryParams
+	var entryBatch []sqlc.InsertEntryParams
+	var studentEntryBatch []sqlc.InsertStudentEntriesParams
 	for _, school := range tourn.Schools {
 		for _, entry := range school.Entries {
 			entryId, err := strconv.Atoi(entry.Id)
@@ -123,7 +124,7 @@ func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn 
 				log.Printf("importEntries: unable to convert entryId to int %v %v", entry.Id, err)
 				return err
 			}
-			batch = append(batch, sqlc.InsertEntryParams{
+			entryBatch = append(entryBatch, sqlc.InsertEntryParams{
 				ID: pgtype.Int4{
 					Int32: int32(entryId),
 					Valid: true,
@@ -145,10 +146,27 @@ func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn 
 					Valid: true,
 				},
 			})
+			for _, student := range entry.Students {
+				studentId, err := strconv.Atoi(student)
+				if err != nil {
+					log.Printf("importEntries: unable to convert student id %v within entry %v", studentId, entryId)
+					return err
+				}
+				studentEntryBatch = append(studentEntryBatch, sqlc.InsertStudentEntriesParams{
+					StudentID: int32(studentId),
+					EntryID:   int32(entryId),
+				})
+			}
 		}
 	}
-	results := qtx.InsertEntry(ctx, batch)
-	return batchExecErr(results.Exec, results.Close)
+	entryResults := qtx.InsertEntry(ctx, entryBatch)
+	err := batchExecErr(entryResults.Exec, entryResults.Close)
+	if err != nil {
+		log.Printf("importEntries: unable to import entries for tournId: %v", tournID)
+		return err
+	}
+	studentEntryResults := qtx.InsertStudentEntries(ctx, studentEntryBatch)
+	return batchExecErr(studentEntryResults.Exec, studentEntryResults.Close)
 }
 
 func batchExecErr(exec func(func(int, error)), close func() error) error {

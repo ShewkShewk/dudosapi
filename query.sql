@@ -44,3 +44,8 @@ ON CONFLICT(id) DO UPDATE
         middle_name = EXCLUDED.middle_name,
         last_name   = EXCLUDED.last_name,
         grad_year   = EXCLUDED.grad_year;
+
+-- name: InsertStudentEntries :batchexec
+INSERT INTO student_entries(student_id, entry_id)
+VALUES ($1, $2)
+ON CONFLICT(student_id, entry_id) DO NOTHING;
