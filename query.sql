@@ -49,3 +49,12 @@ ON CONFLICT(id) DO UPDATE
 INSERT INTO student_entries(student_id, entry_id)
 VALUES ($1, $2)
 ON CONFLICT(student_id, entry_id) DO NOTHING;
+
+-- name: InsertRound :batchexec
+INSERT INTO rounds(id, event_id, number, start_time, published)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT(id) DO UPDATE
+    SET event_id   = EXCLUDED.event_id,
+        number     = EXCLUDED.number,
+        start_time = EXCLUDED.start_time,
+        published  = EXCLUDED.published;

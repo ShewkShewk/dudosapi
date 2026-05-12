@@ -22,6 +22,14 @@ type Event struct {
 	Name         pgtype.Text
 }
 
+type Round struct {
+	ID        int32
+	EventID   pgtype.Int4
+	Number    int32
+	StartTime pgtype.Timestamp
+	Published bool
+}
+
 type School struct {
 	ID   int32
 	Name pgtype.Text

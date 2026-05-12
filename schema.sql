@@ -45,3 +45,12 @@ CREATE TABLE student_entries
     entry_id   SERIAL REFERENCES entries (id) ON DELETE CASCADE,
     PRIMARY KEY (student_id, entry_id)
 );
+
+CREATE TABLE rounds
+(
+    id         SERIAL PRIMARY KEY,
+    event_id   SERIAL REFERENCES events (id) ON DELETE CASCADE,
+    number     INT       NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    published  BOOL      NOT NULL
+);
