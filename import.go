@@ -20,6 +20,11 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 	}
 	defer tx.Rollback(ctx)
 	qtx := queries.WithTx(tx)
+	err = importSitesAndRooms(ctx, qtx, tourn)
+	if err != nil {
+		log.Printf("importTOurnament: unable to import rounds for %v %v", tourn.Name, err)
+		return err
+	}
 	err = importSchools(ctx, qtx, tourn)
 	if err != nil {
 		log.Printf("importTournament: unable to import schools for %v %v", tourn.Name, err)
@@ -51,6 +56,51 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 		return err
 	}
 	return nil
+}
+
+func importSitesAndRooms(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
+	siteBatch := make([]sqlc.InsertSitesParams, len(tourn.Sites))
+	var roomBatch []sqlc.InsertRoomsParams
+	for i, site := range tourn.Sites {
+		siteId, err := strconv.Atoi(site.Id)
+		if err != nil {
+			log.Printf("importSitesAndRooms: unable to convert site id %v to int", site.Id)
+			return err
+		}
+		siteBatch[i] = sqlc.InsertSitesParams{
+			ID: int32(siteId),
+			Name: pgtype.Text{
+				String: site.Name,
+				Valid:  true,
+			},
+		}
+		for _, room := range site.Rooms {
+			roomId, err := strconv.Atoi(room.Id)
+			if err != nil {
+				log.Printf("importSitesAndRooms: unable to convert room id %v to int", room.Id)
+				return err
+			}
+			roomBatch = append(roomBatch, sqlc.InsertRoomsParams{
+				ID: int32(roomId),
+				SiteID: pgtype.Int4{
+					Int32: int32(siteId),
+					Valid: true,
+				},
+				Name: pgtype.Text{
+					String: room.Name,
+					Valid:  true,
+				},
+			})
+		}
+	}
+	siteResults := qtx.InsertSites(ctx, siteBatch)
+	err := batchExecErr(siteResults.Exec, siteResults.Close)
+	if err != nil {
+		log.Printf("importSitesAndRooms: unable to insert sites for tourn %v", tourn.Name)
+		return err
+	}
+	roomResults := qtx.InsertRooms(ctx, roomBatch)
+	return batchExecErr(roomResults.Exec, roomResults.Close)
 }
 
 func importSchools(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {

@@ -58,3 +58,16 @@ ON CONFLICT(id) DO UPDATE
         number     = EXCLUDED.number,
         start_time = EXCLUDED.start_time,
         published  = EXCLUDED.published;
+
+-- name: InsertSites :batchexec
+INSERT INTO sites(id, name)
+VALUES ($1, $2)
+ON CONFLICT (id) DO UPDATE
+    SET name = EXCLUDED.name;
+
+-- name: InsertRooms :batchexec
+INSERT INTO rooms(id, site_id, name)
+VALUES ($1, $2, $3)
+ON CONFLICT (id) DO UPDATE
+    SET site_id = EXCLUDED.site_id,
+        name    = EXCLUDED.name;

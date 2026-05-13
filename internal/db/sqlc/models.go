@@ -22,6 +22,12 @@ type Event struct {
 	Name         pgtype.Text
 }
 
+type Room struct {
+	ID     int32
+	SiteID pgtype.Int4
+	Name   pgtype.Text
+}
+
 type Round struct {
 	ID        int32
 	EventID   pgtype.Int4
@@ -31,6 +37,11 @@ type Round struct {
 }
 
 type School struct {
+	ID   int32
+	Name pgtype.Text
+}
+
+type Site struct {
 	ID   int32
 	Name pgtype.Text
 }

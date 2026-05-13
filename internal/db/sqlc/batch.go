@@ -133,8 +133,63 @@ func (b *InsertEventBatchResults) Close() error {
 	return b.br.Close()
 }
 
+const insertRooms = `-- name: InsertRooms :batchexec
+INSERT INTO rooms(id, site_id, name)
+VALUES ($1, $2, $3)
+ON CONFLICT (id) DO UPDATE
+    SET site_id = EXCLUDED.site_id,
+        name    = EXCLUDED.name
+`
+
+type InsertRoomsBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type InsertRoomsParams struct {
+	ID     int32
+	SiteID pgtype.Int4
+	Name   pgtype.Text
+}
+
+func (q *Queries) InsertRooms(ctx context.Context, arg []InsertRoomsParams) *InsertRoomsBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.ID,
+			a.SiteID,
+			a.Name,
+		}
+		batch.Queue(insertRooms, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &InsertRoomsBatchResults{br, len(arg), false}
+}
+
+func (b *InsertRoomsBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *InsertRoomsBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
 const insertRound = `-- name: InsertRound :batchexec
-INSERt INTO rounds(id, event_id, number, start_time, published)
+INSERT INTO rounds(id, event_id, number, start_time, published)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT(id) DO UPDATE
     SET event_id   = EXCLUDED.event_id,
@@ -242,6 +297,58 @@ func (b *InsertSchoolBatchResults) Exec(f func(int, error)) {
 }
 
 func (b *InsertSchoolBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
+const insertSites = `-- name: InsertSites :batchexec
+INSERT INTO sites(id, name)
+VALUES ($1, $2)
+ON CONFLICT (id) DO UPDATE
+    SET name = EXCLUDED.name
+`
+
+type InsertSitesBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type InsertSitesParams struct {
+	ID   int32
+	Name pgtype.Text
+}
+
+func (q *Queries) InsertSites(ctx context.Context, arg []InsertSitesParams) *InsertSitesBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.ID,
+			a.Name,
+		}
+		batch.Queue(insertSites, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &InsertSitesBatchResults{br, len(arg), false}
+}
+
+func (b *InsertSitesBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *InsertSitesBatchResults) Close() error {
 	b.closed = true
 	return b.br.Close()
 }

@@ -54,3 +54,16 @@ CREATE TABLE rounds
     start_time TIMESTAMP NOT NULL,
     published  BOOL      NOT NULL
 );
+
+CREATE TABLE sites
+(
+    id   SERIAL PRIMARY KEY,
+    NAME TEXT
+);
+
+CREATE TABLE rooms
+(
+    id      SERIAL PRIMARY KEY,
+    site_id SERIAL REFERENCES sites (id) ON DELETE CASCADE,
+    name    TEXT
+);
