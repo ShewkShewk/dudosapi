@@ -226,7 +226,8 @@ func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn 
 }
 
 func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
-	var batch []sqlc.InsertRoundParams
+	var roundBatch []sqlc.InsertRoundParams
+	var sectionBatch []sqlc.InsertSectionsParams
 	for _, category := range tourn.Categories {
 		for _, event := range category.Events {
 			eventId, err := strconv.Atoi(event.Id)
@@ -245,7 +246,7 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 					log.Printf("importRounds: unable to convert timestamp %v to Timestamp.", round.StartTime)
 					return err
 				}
-				batch = append(batch, sqlc.InsertRoundParams{
+				roundBatch = append(roundBatch, sqlc.InsertRoundParams{
 					ID: int32(roundId),
 					EventID: pgtype.Int4{
 						Int32: int32(eventId),
@@ -258,11 +259,45 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 					},
 					Published: round.Published == 1,
 				})
+				for _, section := range round.Sections {
+					sectionId, err := strconv.Atoi(section.Id)
+					if err != nil {
+						log.Printf("importRounds: unable to convert sectionId %v to int", section.Id)
+						return err
+					}
+					roomId := -1
+					if section.Room != nil {
+						roomId = *section.Room
+					}
+					flightNum, err := strconv.Atoi(section.Flight)
+					if err != nil {
+						log.Printf("importRounds: unable to convert flight %v within sectionId %v to int", section.Flight, section.Id)
+						return err
+					}
+					sectionBatch = append(sectionBatch, sqlc.InsertSectionsParams{
+						ID: int32(sectionId),
+						RoundID: pgtype.Int4{
+							Int32: int32(roundId),
+							Valid: true,
+						},
+						RoomID: pgtype.Int4{
+							Int32: int32(roomId),
+							Valid: section.Room != nil,
+						},
+						Flight: int32(flightNum),
+					})
+				}
 			}
 		}
 	}
-	results := qtx.InsertRound(ctx, batch)
-	return batchExecErr(results.Exec, results.Close)
+	roundResults := qtx.InsertRound(ctx, roundBatch)
+	err := batchExecErr(roundResults.Exec, roundResults.Close)
+	if err != nil {
+		log.Printf("importRounds: unable to insert rounds %v", err)
+		return err
+	}
+	batchResults := qtx.InsertSections(ctx, sectionBatch)
+	return batchExecErr(batchResults.Exec, batchResults.Close)
 }
 
 func batchExecErr(exec func(func(int, error)), close func() error) error {

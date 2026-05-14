@@ -301,6 +301,64 @@ func (b *InsertSchoolBatchResults) Close() error {
 	return b.br.Close()
 }
 
+const insertSections = `-- name: InsertSections :batchexec
+INSERT INTO sections(id, round_id, room_id, flight)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (id) DO UPDATE
+    SET round_id = EXCLUDED.round_id,
+        room_id  = EXCLUDED.room_id,
+        flight   = EXCLUDED.flight
+`
+
+type InsertSectionsBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type InsertSectionsParams struct {
+	ID      int32
+	RoundID pgtype.Int4
+	RoomID  pgtype.Int4
+	Flight  int32
+}
+
+func (q *Queries) InsertSections(ctx context.Context, arg []InsertSectionsParams) *InsertSectionsBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.ID,
+			a.RoundID,
+			a.RoomID,
+			a.Flight,
+		}
+		batch.Queue(insertSections, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &InsertSectionsBatchResults{br, len(arg), false}
+}
+
+func (b *InsertSectionsBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *InsertSectionsBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
 const insertSites = `-- name: InsertSites :batchexec
 INSERT INTO sites(id, name)
 VALUES ($1, $2)

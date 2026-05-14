@@ -71,3 +71,11 @@ VALUES ($1, $2, $3)
 ON CONFLICT (id) DO UPDATE
     SET site_id = EXCLUDED.site_id,
         name    = EXCLUDED.name;
+
+-- name: InsertSections :batchexec
+INSERT INTO sections(id, round_id, room_id, flight)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (id) DO UPDATE
+    SET round_id = EXCLUDED.round_id,
+        room_id  = EXCLUDED.room_id,
+        flight   = EXCLUDED.flight;

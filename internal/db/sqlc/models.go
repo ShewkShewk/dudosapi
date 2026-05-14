@@ -41,6 +41,13 @@ type School struct {
 	Name pgtype.Text
 }
 
+type Section struct {
+	ID      int32
+	RoundID pgtype.Int4
+	RoomID  pgtype.Int4
+	Flight  int32
+}
+
 type Site struct {
 	ID   int32
 	Name pgtype.Text
