@@ -17,6 +17,67 @@ var (
 	ErrBatchAlreadyClosed = errors.New("batch already closed")
 )
 
+const insertBallots = `-- name: InsertBallots :batchexec
+INSERT INTO ballots(id, section_id, side, entry_id, result)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT(id) DO UPDATE
+    SET section_id = EXCLUDED.section_id,
+        side       = EXCLUDED.side,
+        entry_id   = EXCLUDED.entry_id,
+        result     = EXCLUDED.result
+`
+
+type InsertBallotsBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type InsertBallotsParams struct {
+	ID        int32
+	SectionID pgtype.Int4
+	Side      NullBallotSide
+	EntryID   pgtype.Int4
+	Result    NullBallotResult
+}
+
+func (q *Queries) InsertBallots(ctx context.Context, arg []InsertBallotsParams) *InsertBallotsBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.ID,
+			a.SectionID,
+			a.Side,
+			a.EntryID,
+			a.Result,
+		}
+		batch.Queue(insertBallots, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &InsertBallotsBatchResults{br, len(arg), false}
+}
+
+func (b *InsertBallotsBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *InsertBallotsBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
 const insertEntry = `-- name: InsertEntry :batchexec
 INSERT INTO entries(id, tournament_id, event_id, code, active)
 VALUES ($1, $2, $3, $4, $5)

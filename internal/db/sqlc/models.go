@@ -5,8 +5,105 @@
 package sqlc
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type BallotResult string
+
+const (
+	BallotResultWIN  BallotResult = "WIN"
+	BallotResultLOSS BallotResult = "LOSS"
+	BallotResultBYE  BallotResult = "BYE"
+	BallotResultFFT  BallotResult = "FFT"
+)
+
+func (e *BallotResult) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BallotResult(s)
+	case string:
+		*e = BallotResult(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BallotResult: %T", src)
+	}
+	return nil
+}
+
+type NullBallotResult struct {
+	BallotResult BallotResult
+	Valid        bool // Valid is true if BallotResult is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBallotResult) Scan(value interface{}) error {
+	if value == nil {
+		ns.BallotResult, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BallotResult.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBallotResult) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BallotResult), nil
+}
+
+type BallotSide string
+
+const (
+	BallotSideAFF BallotSide = "AFF"
+	BallotSideNEG BallotSide = "NEG"
+)
+
+func (e *BallotSide) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BallotSide(s)
+	case string:
+		*e = BallotSide(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BallotSide: %T", src)
+	}
+	return nil
+}
+
+type NullBallotSide struct {
+	BallotSide BallotSide
+	Valid      bool // Valid is true if BallotSide is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBallotSide) Scan(value interface{}) error {
+	if value == nil {
+		ns.BallotSide, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BallotSide.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBallotSide) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BallotSide), nil
+}
+
+type Ballot struct {
+	ID        int32
+	SectionID pgtype.Int4
+	Side      NullBallotSide
+	EntryID   pgtype.Int4
+	Result    NullBallotResult
+}
 
 type Entry struct {
 	ID           pgtype.Int4

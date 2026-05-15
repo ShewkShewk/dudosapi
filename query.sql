@@ -79,3 +79,12 @@ ON CONFLICT (id) DO UPDATE
     SET round_id = EXCLUDED.round_id,
         room_id  = EXCLUDED.room_id,
         flight   = EXCLUDED.flight;
+
+-- name: InsertBallots :batchexec
+INSERT INTO ballots(id, section_id, side, entry_id, result)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT(id) DO UPDATE
+    SET section_id = EXCLUDED.section_id,
+        side       = EXCLUDED.side,
+        entry_id   = EXCLUDED.entry_id,
+        result     = EXCLUDED.result;

@@ -228,6 +228,7 @@ func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn 
 func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
 	var roundBatch []sqlc.InsertRoundParams
 	var sectionBatch []sqlc.InsertSectionsParams
+	var ballotBatch []sqlc.InsertBallotsParams
 	for _, category := range tourn.Categories {
 		for _, event := range category.Events {
 			eventId, err := strconv.Atoi(event.Id)
@@ -260,6 +261,9 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 					Published: round.Published == 1,
 				})
 				for _, section := range round.Sections {
+					if len(section.Ballots) == 0 {
+						continue
+					}
 					sectionId, err := strconv.Atoi(section.Id)
 					if err != nil {
 						log.Printf("importRounds: unable to convert sectionId %v to int", section.Id)
@@ -286,6 +290,52 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 						},
 						Flight: int32(flightNum),
 					})
+					for _, ballot := range section.Ballots {
+						ballotId, err := strconv.Atoi(ballot.Id)
+						if err != nil {
+							log.Printf("importRounds: unable to convert ballot id %v to int", ballot.Id)
+						}
+						var result sqlc.BallotResult
+						for _, score := range ballot.Scores {
+							if score.Tag == "winloss" {
+								if score.Value == 0 {
+									result = "LOSS"
+								} else if score.Value == 1 {
+									result = "WIN"
+								}
+							}
+						}
+						if ballot.Bye == 1 {
+							result = "BYE"
+						} else if ballot.Forfeit == 1 {
+							result = "FFT"
+						}
+						var side sqlc.BallotSide
+						if ballot.Side == 1 {
+							side = "AFF"
+						} else if ballot.Side == 2 {
+							side = "NEG"
+						}
+						ballotBatch = append(ballotBatch, sqlc.InsertBallotsParams{
+							ID: int32(ballotId),
+							SectionID: pgtype.Int4{
+								Int32: int32(sectionId),
+								Valid: true,
+							},
+							Side: sqlc.NullBallotSide{
+								BallotSide: side,
+								Valid:      true,
+							},
+							EntryID: pgtype.Int4{
+								Int32: int32(ballot.Entry),
+								Valid: true,
+							},
+							Result: sqlc.NullBallotResult{
+								BallotResult: result,
+								Valid:        result != "",
+							},
+						})
+					}
 				}
 			}
 		}
@@ -297,7 +347,13 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 		return err
 	}
 	batchResults := qtx.InsertSections(ctx, sectionBatch)
-	return batchExecErr(batchResults.Exec, batchResults.Close)
+	err = batchExecErr(batchResults.Exec, batchResults.Close)
+	if err != nil {
+		log.Printf("importRounds: unable to insert sections %v", err)
+		return err
+	}
+	ballotResults := qtx.InsertBallots(ctx, ballotBatch)
+	return batchExecErr(ballotResults.Exec, ballotResults.Close)
 }
 
 func batchExecErr(exec func(func(int, error)), close func() error) error {
