@@ -86,5 +86,6 @@ CREATE TABLE ballots
     section_id INTEGER REFERENCES sections (id),
     side       ballot_side,
     entry_id   INTEGER REFERENCES entries (id),
+    started    BOOLEAN,
     result     ballot_result
 );

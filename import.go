@@ -330,6 +330,10 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 								Int32: int32(ballot.Entry),
 								Valid: true,
 							},
+							Started: pgtype.Bool{
+								Bool:  ballot.StartedBy != 0,
+								Valid: true,
+							},
 							Result: sqlc.NullBallotResult{
 								BallotResult: result,
 								Valid:        result != "",

@@ -81,10 +81,11 @@ ON CONFLICT (id) DO UPDATE
         flight   = EXCLUDED.flight;
 
 -- name: InsertBallots :batchexec
-INSERT INTO ballots(id, section_id, side, entry_id, result)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO ballots(id, section_id, side, entry_id, started, result)
+VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT(id) DO UPDATE
     SET section_id = EXCLUDED.section_id,
         side       = EXCLUDED.side,
         entry_id   = EXCLUDED.entry_id,
+        started    = EXCLUDED.started,
         result     = EXCLUDED.result;

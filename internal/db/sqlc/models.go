@@ -102,6 +102,7 @@ type Ballot struct {
 	SectionID pgtype.Int4
 	Side      NullBallotSide
 	EntryID   pgtype.Int4
+	Started   pgtype.Bool
 	Result    NullBallotResult
 }
 
