@@ -120,6 +120,15 @@ type Event struct {
 	Name         pgtype.Text
 }
 
+type Judge struct {
+	ID           int32
+	TournamentID int32
+	PersonID     int32
+	FirstName    string
+	LastName     string
+	Email        pgtype.Text
+}
+
 type Room struct {
 	ID     int32
 	SiteID pgtype.Int4

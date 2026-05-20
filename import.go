@@ -22,7 +22,12 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 	qtx := queries.WithTx(tx)
 	err = importSitesAndRooms(ctx, qtx, tourn)
 	if err != nil {
-		log.Printf("importTOurnament: unable to import rounds for %v %v", tourn.Name, err)
+		log.Printf("importTournament: unable to import rounds for %v %v", tourn.Name, err)
+		return err
+	}
+	err = importJudges(ctx, qtx, tournId, tourn)
+	if err != nil {
+		log.Printf("importTournament: unable to import judges for %v %v", tourn.Name, err)
 		return err
 	}
 	err = importSchools(ctx, qtx, tourn)
@@ -101,6 +106,32 @@ func importSitesAndRooms(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.To
 	}
 	roomResults := qtx.InsertRooms(ctx, roomBatch)
 	return batchExecErr(roomResults.Exec, roomResults.Close)
+}
+
+func importJudges(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData) error {
+	var batch []sqlc.InsertJudgesParams
+	for _, category := range tourn.Categories {
+		for _, judge := range category.Judges {
+			judgeId, err := strconv.Atoi(judge.Id)
+			if err != nil {
+				log.Printf("importJudges: unable to convert judge id %v within tournament %v to int", judge.Id, tournId)
+				return err
+			}
+			batch = append(batch, sqlc.InsertJudgesParams{
+				ID:           int32(judgeId),
+				TournamentID: tournId,
+				PersonID:     int32(judge.Person),
+				FirstName:    judge.First,
+				LastName:     judge.Last,
+				Email: pgtype.Text{
+					String: judge.Email,
+					Valid:  judge.Email != "",
+				},
+			})
+		}
+	}
+	results := qtx.InsertJudges(ctx, batch)
+	return batchExecErr(results.Exec, results.Close)
 }
 
 func importSchools(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
