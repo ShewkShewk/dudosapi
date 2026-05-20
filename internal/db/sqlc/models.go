@@ -100,6 +100,7 @@ func (ns NullBallotSide) Value() (driver.Value, error) {
 type Ballot struct {
 	ID        int32
 	SectionID pgtype.Int4
+	JudgeID   pgtype.Int4
 	Side      NullBallotSide
 	EntryID   pgtype.Int4
 	Started   pgtype.Bool

@@ -353,6 +353,10 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 								Int32: int32(sectionId),
 								Valid: true,
 							},
+							JudgeID: pgtype.Int4{
+								Int32: int32(ballot.Judge),
+								Valid: ballot.Judge != 0,
+							},
 							Side: sqlc.NullBallotSide{
 								BallotSide: side,
 								Valid:      true,

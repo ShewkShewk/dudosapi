@@ -18,10 +18,11 @@ var (
 )
 
 const insertBallots = `-- name: InsertBallots :batchexec
-INSERT INTO ballots(id, section_id, side, entry_id, started, result)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO ballots(id, section_id, judge_id, side, entry_id, started, result)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT(id) DO UPDATE
     SET section_id = EXCLUDED.section_id,
+        judge_id   = EXCLUDED.judge_id,
         side       = EXCLUDED.side,
         entry_id   = EXCLUDED.entry_id,
         started    = EXCLUDED.started,
@@ -37,6 +38,7 @@ type InsertBallotsBatchResults struct {
 type InsertBallotsParams struct {
 	ID        int32
 	SectionID pgtype.Int4
+	JudgeID   pgtype.Int4
 	Side      NullBallotSide
 	EntryID   pgtype.Int4
 	Started   pgtype.Bool
@@ -49,6 +51,7 @@ func (q *Queries) InsertBallots(ctx context.Context, arg []InsertBallotsParams) 
 		vals := []interface{}{
 			a.ID,
 			a.SectionID,
+			a.JudgeID,
 			a.Side,
 			a.EntryID,
 			a.Started,
