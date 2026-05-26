@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -28,6 +29,7 @@ func NewServer(config *Config) (http.Handler, error) {
 	mux.Handle("GET /tournaments", handleGetTournaments(tb, queries))
 	mux.Handle("POST /tournaments/{id}/import", handleImportTournament(tb, dbConn, queries))
 	mux.Handle("DELETE /tournaments/{id}", handleDeleteTournament(queries))
+	mux.Handle("GET /tournaments/{id}/pairings/latest", handleGetLatestPairings(dbConn, queries))
 	return mux, nil
 }
 
@@ -143,5 +145,27 @@ func handleDeleteTournament(queries *sqlc.Queries) http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func handleGetLatestPairings(conn *pgxpool.Pool, queries *sqlc.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid tournament id", http.StatusBadRequest)
+			return
+		}
+		tournId := int32(id)
+		pairings, err := getLatestPairings(r.Context(), conn, queries, tournId)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to get latest pairings for tournament %v", tournId), http.StatusInternalServerError)
+			return
+		}
+		err = encode(w, r, http.StatusOK, pairings)
+		if err != nil {
+			log.Printf("handleGetLatestPairings error from encoding %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 }

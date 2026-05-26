@@ -330,16 +330,16 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 						for _, score := range ballot.Scores {
 							if score.Tag == "winloss" {
 								if score.Value == 0 {
-									result = "LOSS"
+									result = sqlc.BallotResultLOSS
 								} else if score.Value == 1 {
-									result = "WIN"
+									result = sqlc.BallotResultWIN
 								}
 							}
 						}
 						if ballot.Bye == 1 {
-							result = "BYE"
+							result = sqlc.BallotResultBYE
 						} else if ballot.Forfeit == 1 {
-							result = "FFT"
+							result = sqlc.BallotResultFFT
 						}
 						var side sqlc.BallotSide
 						if ballot.Side == 1 {

@@ -100,3 +100,69 @@ ON CONFLICT(id) DO UPDATE
         first_name    = EXCLUDED.first_name,
         last_name     = EXCLUDED.last_name,
         email         = EXCLUDED.email;
+
+-- name: GetLatestPublishedRoundsPerEvent :many
+SELECT DISTINCT ON (events.name) rounds.event_id   AS event_id,
+                                 events.name       AS event_name,
+                                 rounds.number        round_number,
+                                 rounds.id         AS round_id,
+                                 rounds.start_time AS start_time
+FROM rounds
+         JOIN events
+              ON events.id = rounds.event_id
+WHERE events.tournament_id = $1
+  AND published = TRUE
+ORDER BY events.name, rounds.number DESC;
+
+-- name: GetPairingsWithBallots :many
+WITH unique_section_judges AS (SELECT DISTINCT ON (ballots.section_id, judges.id) ballots.section_id,
+                                                                                  judges.id,
+                                                                                  judges.first_name,
+                                                                                  judges.last_name,
+                                                                                  judges.person_id,
+                                                                                  ballots.started
+                               FROM ballots
+                                        LEFT JOIN judges ON ballots.judge_id = judges.id
+                                        JOIN sections ON ballots.section_id = sections.id
+                               WHERE sections.round_id = ANY ($1::int[])
+                                 AND judges.id IS NOT NULL),
+     judges_aggregated AS (SELECT section_id,
+                                  JSON_AGG(
+                                          JSON_BUILD_OBJECT('id', id, 'firstName', first_name, 'lastName', last_name,
+                                                            'personId', person_id, 'started', started)
+                                  ) AS aggregated_judges
+                           FROM unique_section_judges
+                           GROUP BY section_id),
+     matchups_with_ballots AS (SELECT section_id,
+                                      MAX(rounds.event_id)                                         AS event_id,
+                                      MAX(room_id)                                                 AS room_id,
+                                      MAX(entry_id) FILTER (WHERE side = 'AFF')                    AS aff_team,
+                                      MAX(entry_id) FILTER (WHERE side = 'NEG')                    AS neg_team,
+                                      JSON_AGG(
+                                      JSON_BUILD_OBJECT('side', side, 'result', result, 'judge', ballots.judge_id)
+                                              ) FILTER (WHERE result IS NOT NULL AND side = 'AFF') AS aff_ballots,
+                                      JSON_AGG(
+                                      JSON_BUILD_OBJECT('side', side, 'result', result, 'judge', ballots.judge_id)
+                                              ) FILTER (WHERE result IS NOT NULL AND side = 'NEG') AS neg_ballots
+                               FROM ballots
+                                        JOIN sections ON ballots.section_id = sections.id
+                                        JOIN rounds ON sections.round_id = rounds.id
+                               WHERE sections.round_id = ANY ($1::int[])
+                               GROUP BY section_id)
+SELECT matchups_with_ballots.event_id::int AS event_id,
+       matchups_with_ballots.section_id    AS section_id,
+       rooms.id                            AS room_id,
+       rooms.name                          AS room_name,
+       aff_entries.id                      AS aff_team_entry_id,
+       aff_entries.code                    AS aff_team_entry_code,
+       neg_entries.id                      AS neg_team_entry_id,
+       neg_entries.code                    As neg_team_entry_code,
+       matchups_with_ballots.aff_ballots   AS aff_team_ballots,
+       matchups_with_ballots.neg_ballots   AS neg_team_ballots,
+       judges_aggregated.aggregated_judges AS associated_judges
+FROM matchups_with_ballots
+         LEFT JOIN entries AS aff_entries ON aff_team = aff_entries.id
+         LEFT JOIN entries AS neg_entries ON neg_team = neg_entries.id
+         LEFT JOIN rooms ON room_id = rooms.id
+         LEFT JOIN judges_aggregated ON matchups_with_ballots.section_id = judges_aggregated.section_id
+ORDER BY room_name;
