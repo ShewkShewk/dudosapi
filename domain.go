@@ -36,7 +36,7 @@ type Pairing struct {
 	AffResult *BallotResult `json:"affResult"`
 	NegEntry  *Entry        `json:"negEntry"`
 	NegResult *BallotResult `json:"negResult"`
-	Judges    []Judge       `json:"judge"`
+	Judges    []Judge       `json:"judges"`
 }
 
 type EventPairing struct {
