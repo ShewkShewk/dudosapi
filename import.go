@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/ShewkShewk/dudosapi/internal/db/sqlc"
 	"github.com/ShewkShewk/tbapi"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -40,12 +42,12 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 		log.Printf("importTournament: unable to import students for %v %v", tourn.Name, err)
 		return err
 	}
-	err = importEvents(ctx, qtx, tournId, tourn)
+	eventMap, err := importEvents(ctx, qtx, tournId, tourn)
 	if err != nil {
 		log.Printf("importTournament: unable to import events for %v %v", tourn.Name, err)
 		return err
 	}
-	err = importEntries(ctx, qtx, tournId, tourn)
+	err = importEntries(ctx, qtx, tournId, tourn, eventMap)
 	if err != nil {
 		log.Printf("importTournament: unable to import entries for %v %v", tourn.Name, err)
 		return err
@@ -149,15 +151,20 @@ func importSchools(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tourname
 	return batchExecErr(results.Exec, results.Close)
 }
 
-func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData) error {
+func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData) (map[int]any, error) {
 	var batch []sqlc.InsertEventParams
+	var eventMap = make(map[int]any)
 	for _, category := range tourn.Categories {
 		for _, event := range category.Events {
+			if event.Type != "debate" { // Only care for debate events unfortunately
+				continue
+			}
 			eventId, err := strconv.Atoi(event.Id)
 			if err != nil {
 				log.Printf("importEvents: unable to convert %s to event id", event.Id)
-				return err
+				return nil, err
 			}
+			eventMap[eventId] = 1
 			batch = append(batch, sqlc.InsertEventParams{
 				ID: int32(eventId),
 				TournamentID: pgtype.Int4{
@@ -172,7 +179,7 @@ func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *
 		}
 	}
 	results := qtx.InsertEvent(ctx, batch)
-	return batchExecErr(results.Exec, results.Close)
+	return eventMap, batchExecErr(results.Exec, results.Close)
 }
 
 func importStudents(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
@@ -201,7 +208,7 @@ func importStudents(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournam
 	return batchExecErr(results.Exec, results.Close)
 }
 
-func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn *tbapi.TournamentData) error {
+func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn *tbapi.TournamentData, validEvents map[int]any) error {
 	var entryBatch []sqlc.InsertEntryParams
 	var studentEntryBatch []sqlc.InsertStudentEntriesParams
 	for _, school := range tourn.Schools {
@@ -210,6 +217,10 @@ func importEntries(ctx context.Context, qtx *sqlc.Queries, tournID int32, tourn 
 			if err != nil {
 				log.Printf("importEntries: unable to convert entryId to int %v %v", entry.Id, err)
 				return err
+			}
+			_, ok := validEvents[entry.Event]
+			if !ok { // Attempting to add an entry to an event
+				continue
 			}
 			entryBatch = append(entryBatch, sqlc.InsertEntryParams{
 				ID: pgtype.Int4{
@@ -262,6 +273,9 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 	var ballotBatch []sqlc.InsertBallotsParams
 	for _, category := range tourn.Categories {
 		for _, event := range category.Events {
+			if event.Type != "debate" { // Only care for debate events unfortunately
+				continue
+			}
 			eventId, err := strconv.Atoi(event.Id)
 			if err != nil {
 				log.Printf("importRounds: unable to convert event id %v to int", eventId)
@@ -407,6 +421,12 @@ func batchExecErr(exec func(func(int, error)), close func() error) error {
 	closeErr := close()
 
 	if batchErr != nil {
+		var pgError *pgconn.PgError
+		if errors.As(batchErr, &pgError) {
+			log.Printf("batchExecErr: %v %v", pgError, pgError.Detail)
+		} else {
+			log.Printf("batchExecErr: %v", batchErr.Error())
+		}
 		return batchErr
 	}
 
