@@ -156,7 +156,7 @@ func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *
 	var eventMap = make(map[int]any)
 	for _, category := range tourn.Categories {
 		for _, event := range category.Events {
-			if event.Type != "debate" { // Only care for debate events unfortunately
+			if event.Type != "debate" && event.Type != "wsdc" { // Only care for debate events unfortunately
 				continue
 			}
 			eventId, err := strconv.Atoi(event.Id)
@@ -273,7 +273,7 @@ func importRounds(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.Tournamen
 	var ballotBatch []sqlc.InsertBallotsParams
 	for _, category := range tourn.Categories {
 		for _, event := range category.Events {
-			if event.Type != "debate" { // Only care for debate events unfortunately
+			if event.Type != "debate" && event.Type != "wsdc" { // Only care for debate events unfortunately
 				continue
 			}
 			eventId, err := strconv.Atoi(event.Id)
