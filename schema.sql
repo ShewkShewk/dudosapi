@@ -71,8 +71,8 @@ CREATE TABLE rooms
 CREATE TABLE sections
 (
     id       SERIAL PRIMARY KEY,
-    round_id SERIAL REFERENCES rounds (id),
-    room_id  INTEGER REFERENCES rooms (id),
+    round_id SERIAL REFERENCES rounds (id) ON DELETE CASCADE,
+    room_id  INTEGER REFERENCES rooms (id) ON DELETE CASCADE,
     flight   INT NOT NULL
 );
 
@@ -83,10 +83,10 @@ CREATE TYPE ballot_result AS ENUM ('WIN', 'LOSS', 'BYE', 'FFT');
 CREATE TABLE ballots
 (
     id         INTEGER PRIMARY KEY,
-    section_id INTEGER REFERENCES sections (id),
-    judge_id   INTEGER REFERENCES judges (id),
+    section_id INTEGER REFERENCES sections (id) ON DELETE CASCADE,
+    judge_id   INTEGER REFERENCES judges (id) ON DELETE CASCADE,
     side       ballot_side,
-    entry_id   INTEGER REFERENCES entries (id),
+    entry_id   INTEGER REFERENCES entries (id) ON DELETE CASCADE,
     started    BOOLEAN,
     result     ballot_result
 );

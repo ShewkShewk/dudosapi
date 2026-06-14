@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/ShewkShewk/dudosapi/internal/db/sqlc"
 	"github.com/ShewkShewk/tbapi"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -141,6 +143,12 @@ func handleDeleteTournament(queries *sqlc.Queries) http.HandlerFunc {
 		err = queries.DeleteTournament(r.Context(), int32(id))
 		if err != nil {
 			log.Printf("handleDeleteTournament: unable to delete %v", id)
+			var pgError *pgconn.PgError
+			if errors.As(err, &pgError) {
+				log.Printf("batchExecErr: %v %v", pgError, pgError.Detail)
+			} else {
+				log.Printf("batchExecErr: %v", err.Error())
+			}
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
