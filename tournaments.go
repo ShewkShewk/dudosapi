@@ -63,6 +63,10 @@ func getLatestPairings(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Qu
 }
 
 func toPairing(row sqlc.GetPairingsWithBallotsRow) (*Pairing, error) {
+	var sectionId int
+	if row.SectionID.Valid {
+		sectionId = int(row.SectionID.Int32)
+	}
 	var room string
 	if row.RoomName.Valid {
 		room = row.RoomName.String
@@ -152,6 +156,7 @@ func toPairing(row sqlc.GetPairingsWithBallotsRow) (*Pairing, error) {
 		negResultPtr = &negResult
 	}
 	pairing := Pairing{
+		SectionId: sectionId,
 		Room:      room,
 		AffEntry:  affEntry,
 		AffResult: affResultPtr,
