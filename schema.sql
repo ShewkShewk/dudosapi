@@ -72,7 +72,7 @@ CREATE TABLE sections
 (
     id       SERIAL PRIMARY KEY,
     round_id SERIAL REFERENCES rounds (id) ON DELETE CASCADE,
-    room_id  INTEGER REFERENCES rooms (id) ON DELETE CASCADE,
+    room_id  INTEGER,
     flight   INT NOT NULL
 );
 
