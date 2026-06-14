@@ -67,9 +67,9 @@ func toPairing(row sqlc.GetPairingsWithBallotsRow) (*Pairing, error) {
 	if row.SectionID.Valid {
 		sectionId = int(row.SectionID.Int32)
 	}
-	var room string
+	var room *string
 	if row.RoomName.Valid {
-		room = row.RoomName.String
+		room = &row.RoomName.String
 	}
 	var affEntry *Entry
 	if row.AffTeamEntryCode.Valid && row.AffTeamEntryID.Valid {

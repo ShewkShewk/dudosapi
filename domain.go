@@ -32,7 +32,7 @@ type Judge struct {
 
 type Pairing struct {
 	SectionId int           `json:"sectionId"`
-	Room      string        `json:"room"`
+	Room      *string       `json:"room"`
 	AffEntry  *Entry        `json:"affEntry"`
 	AffResult *BallotResult `json:"affResult"`
 	NegEntry  *Entry        `json:"negEntry"`
