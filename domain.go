@@ -32,6 +32,7 @@ type Judge struct {
 
 type Pairing struct {
 	SectionId int           `json:"sectionId"`
+	Flight    int           `json:"flight"`
 	Room      *string       `json:"room"`
 	AffEntry  *Entry        `json:"affEntry"`
 	AffResult *BallotResult `json:"affResult"`

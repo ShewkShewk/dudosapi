@@ -120,6 +120,7 @@ WITH unique_section_judges AS (SELECT DISTINCT ON (ballots.section_id, judges.id
                            FROM unique_section_judges
                            GROUP BY section_id),
      matchups_with_ballots AS (SELECT section_id,
+                                      MAX(sections.flight)                                         AS flight,
                                       MAX(rounds.event_id)                                         AS event_id,
                                       MAX(room_id)                                                 AS room_id,
                                       MAX(entry_id) FILTER (WHERE side = 'AFF')                    AS aff_team,
@@ -137,6 +138,7 @@ WITH unique_section_judges AS (SELECT DISTINCT ON (ballots.section_id, judges.id
                                GROUP BY section_id)
 SELECT matchups_with_ballots.event_id::int AS event_id,
        matchups_with_ballots.section_id    AS section_id,
+       matchups_with_ballots.flight::int   AS flight,
        rooms.id                            AS room_id,
        rooms.name                          AS room_name,
        aff_entries.id                      AS aff_team_entry_id,
@@ -157,6 +159,7 @@ ORDER BY room_name
 type GetPairingsWithBallotsRow struct {
 	EventID          int32
 	SectionID        pgtype.Int4
+	Flight           int32
 	RoomID           pgtype.Int4
 	RoomName         pgtype.Text
 	AffTeamEntryID   pgtype.Int4
@@ -180,6 +183,7 @@ func (q *Queries) GetPairingsWithBallots(ctx context.Context, dollar_1 []int32) 
 		if err := rows.Scan(
 			&i.EventID,
 			&i.SectionID,
+			&i.Flight,
 			&i.RoomID,
 			&i.RoomName,
 			&i.AffTeamEntryID,
