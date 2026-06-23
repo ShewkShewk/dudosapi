@@ -38,6 +38,7 @@ func getLatestPairings(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Qu
 		return nil, err
 	}
 	pairingByEntry := make(map[int32][]Pairing)
+	flightedByEntry := make(map[int32]struct{})
 	for _, dbPairing := range dbPairings {
 		pairing, err := toPairing(dbPairing)
 		if err != nil {
@@ -46,14 +47,20 @@ func getLatestPairings(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Qu
 		}
 		eventId := dbPairing.EventID
 		pairingByEntry[eventId] = append(pairingByEntry[eventId], *pairing)
+		if pairing.Flight > 1 {
+			flightedByEntry[eventId] = struct{}{}
+		}
 	}
 	eventPairings := make([]EventPairing, len(rows))
 	for i, row := range rows {
+		eventId := row.EventID.Int32
+		_, flighted := flightedByEntry[eventId]
 		eventPairings[i] = EventPairing{
 			Name:      row.EventName.String,
 			Number:    int(row.RoundNumber),
+			Flighted:  flighted,
 			StartTime: row.StartTime.Time.In(getTimezone()).Format(time.Kitchen),
-			Pairings:  pairingByEntry[row.EventID.Int32],
+			Pairings:  pairingByEntry[eventId],
 		}
 	}
 

@@ -44,6 +44,7 @@ type Pairing struct {
 type EventPairing struct {
 	Name      string    `json:"name"`
 	Number    int       `json:"number"`
+	Flighted  bool      `json:"flighted"`
 	StartTime string    `json:"startTime"`
 	Pairings  []Pairing `json:"pairings"`
 }
