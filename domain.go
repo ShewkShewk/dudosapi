@@ -42,9 +42,10 @@ type Pairing struct {
 }
 
 type EventPairing struct {
-	Name     string    `json:"name"`
-	Number   int       `json:"number"`
-	Pairings []Pairing `json:"pairings"`
+	Name      string    `json:"name"`
+	Number    int       `json:"number"`
+	StartTime string    `json:"startTime"`
+	Pairings  []Pairing `json:"pairings"`
 }
 
 type TournamentPairings struct {

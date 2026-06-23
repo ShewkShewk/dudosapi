@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/ShewkShewk/dudosapi/internal/db/sqlc"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -49,9 +50,10 @@ func getLatestPairings(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Qu
 	eventPairings := make([]EventPairing, len(rows))
 	for i, row := range rows {
 		eventPairings[i] = EventPairing{
-			Name:     row.EventName.String,
-			Number:   int(row.RoundNumber),
-			Pairings: pairingByEntry[row.EventID.Int32],
+			Name:      row.EventName.String,
+			Number:    int(row.RoundNumber),
+			StartTime: row.StartTime.Time.In(getTimezone()).Format(time.Kitchen),
+			Pairings:  pairingByEntry[row.EventID.Int32],
 		}
 	}
 
@@ -181,4 +183,9 @@ func getBallotResults(content []byte) ([]BallotResult, error) {
 		toReturn[i] = BallotResult(ballot.Result)
 	}
 	return toReturn, nil
+}
+
+func getTimezone() *time.Location {
+	timeZone, _ := time.LoadLocation("America/Chicago")
+	return timeZone
 }

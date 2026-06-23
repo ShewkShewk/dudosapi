@@ -104,7 +104,7 @@ ON CONFLICT(id) DO UPDATE
 -- name: GetLatestPublishedRoundsPerEvent :many
 SELECT DISTINCT ON (events.name) rounds.event_id   AS event_id,
                                  events.name       AS event_name,
-                                 rounds.number        round_number,
+                                 rounds.number     AS round_number,
                                  rounds.id         AS round_id,
                                  rounds.start_time AS start_time
 FROM rounds
