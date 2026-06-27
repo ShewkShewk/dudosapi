@@ -143,7 +143,8 @@ func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *s
 		}
 		pairings, err := getLatestPairings(r.Context(), conn, queries, tournId)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("unable to get latest pairings for tournament %v after import", tournId), http.StatusInternalServerError)
+			log.Printf("unable to get latest pairings for tournament %v after import %v", tournId, err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		htmlPairings := pairingsToHtml(*pairings)
@@ -153,12 +154,14 @@ func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *s
 		wc.CacheControl = "no-store"
 		err = htmlPairings.Render(context.Background(), wc)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("unable to render pairings for tournament %v", tournId), http.StatusInternalServerError)
+			log.Printf("unable to render pairings for tournament %v %v", tournId, err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		err = wc.Close()
 		if err != nil {
-			http.Error(w, fmt.Sprintf("unable to upload pairings for tournament %v", tournId), http.StatusInternalServerError)
+			log.Printf("unable to upload pairings for tournament %v %v", tournId, err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
