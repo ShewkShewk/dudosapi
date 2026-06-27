@@ -149,7 +149,7 @@ func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *s
 		htmlPairings := pairingsToHtml(*pairings)
 		bucketName := "duda_pairings"
 		objectName := "pairings.html"
-		wc := storageClient.Bucket(bucketName).Object(objectName).NewWriter(context.Background())
+		wc := storageClient.Bucket(bucketName).Object(objectName).NewWriter(r.Context())
 		wc.CacheControl = "no-store"
 		defer wc.Close()
 		err = htmlPairings.Render(context.Background(), wc)
