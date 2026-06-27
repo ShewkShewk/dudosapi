@@ -151,10 +151,14 @@ func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *s
 		objectName := "pairings.html"
 		wc := storageClient.Bucket(bucketName).Object(objectName).NewWriter(r.Context())
 		wc.CacheControl = "no-store"
-		defer wc.Close()
 		err = htmlPairings.Render(context.Background(), wc)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("unable to upload pairings to GCS for tournament %v", tournId), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("unable to render pairings for tournament %v", tournId), http.StatusInternalServerError)
+			return
+		}
+		err = wc.Close()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to upload pairings for tournament %v", tournId), http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
