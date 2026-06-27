@@ -204,6 +204,31 @@ func (q *Queries) GetPairingsWithBallots(ctx context.Context, dollar_1 []int32) 
 	return items, nil
 }
 
+const getTournament = `-- name: GetTournament :one
+SELECT id, date, name, updated_time
+FROM tournaments
+WHERE id = $1
+`
+
+type GetTournamentRow struct {
+	ID          int32
+	Date        pgtype.Text
+	Name        pgtype.Text
+	UpdatedTime pgtype.Text
+}
+
+func (q *Queries) GetTournament(ctx context.Context, id int32) (GetTournamentRow, error) {
+	row := q.db.QueryRow(ctx, getTournament, id)
+	var i GetTournamentRow
+	err := row.Scan(
+		&i.ID,
+		&i.Date,
+		&i.Name,
+		&i.UpdatedTime,
+	)
+	return i, err
+}
+
 const loadTournament = `-- name: LoadTournament :exec
 INSERT INTO tournaments (id, raw)
 VALUES ($1, $2)

@@ -2,6 +2,11 @@
 SELECT id, updated_time
 FROM tournaments;
 
+-- name: GetTournament :one
+SELECT id, date, name, updated_time
+FROM tournaments
+WHERE id = $1;
+
 -- name: LoadTournament :exec
 INSERT INTO tournaments (id, raw)
 VALUES ($1, $2)

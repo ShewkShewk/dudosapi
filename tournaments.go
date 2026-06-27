@@ -21,6 +21,21 @@ func getLatestPairings(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Qu
 	}
 	defer tx.Rollback(ctx)
 	qtx := queries.WithTx(tx)
+	tournamentData, err := qtx.GetTournament(ctx, tournId)
+	if err != nil {
+		log.Printf("getLatestPairings: unable to get tournament data for %v %v", tournId, err)
+		return nil, err
+	}
+	if !tournamentData.Name.Valid || !tournamentData.Date.Valid || !tournamentData.UpdatedTime.Valid {
+		log.Printf("getLatestPairings: invalid data returned for %v", tournId)
+		return nil, err
+	}
+	tournamentName := tournamentData.Name.String
+	updateTime, err := utcToCentralTime(tournamentData.UpdatedTime.String)
+	if err != nil {
+		log.Printf("getLatestPairings: unable to convert time %v to timezone for tournament %v", tournamentData.UpdatedTime.String, tournId)
+		return nil, err
+	}
 	rows, err := qtx.GetLatestPublishedRoundsPerEvent(ctx, pgtype.Int4{
 		Int32: tournId,
 		Valid: true,
@@ -66,8 +81,8 @@ func getLatestPairings(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Qu
 	}
 
 	return &TournamentPairings{
-		Name:          "tournamentNameHere",
-		UpdateTime:    "sometimehere",
+		Name:          tournamentName,
+		UpdateTime:    updateTime,
 		EventPairings: eventPairings,
 	}, nil
 }
@@ -191,6 +206,16 @@ func getBallotResults(content []byte) ([]BallotResult, error) {
 		toReturn[i] = BallotResult(ballot.Result)
 	}
 	return toReturn, nil
+}
+
+func utcToCentralTime(utcTimeStr string) (string, error) {
+	layout := "2006-01-02T15:04:05"
+	utcTime, err := time.Parse(layout, utcTimeStr)
+	if err != nil {
+		return "", fmt.Errorf("error parsing time: %w", err)
+	}
+	centralTime := utcTime.In(getTimezone())
+	return fmt.Sprintf("%v %v", centralTime.Format(time.DateOnly), centralTime.Format(time.Kitchen)), nil
 }
 
 func getTimezone() *time.Location {
