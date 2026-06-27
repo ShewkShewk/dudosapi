@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/ShewkShewk/dudosapi/internal/db/sqlc"
 	"github.com/ShewkShewk/tbapi"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -25,11 +26,17 @@ func NewServer(config *Config) (http.Handler, error) {
 	}
 	dbConn, err := getDbExecutor(ctx, config)
 	if err != nil {
+		log.Printf("unable to get db connection %v", err)
+		return nil, err
+	}
+	storageClient, err := getStorageClient(ctx)
+	if err != nil {
+		log.Printf("unable to get storage client %v", err)
 		return nil, err
 	}
 	queries := sqlc.New(dbConn)
 	mux.Handle("GET /tournaments", handleGetTournaments(tb, queries))
-	mux.Handle("POST /tournaments/{id}/import", handleImportTournament(tb, dbConn, queries))
+	mux.Handle("POST /tournaments/{id}/import", handleImportTournament(tb, dbConn, queries, storageClient))
 	mux.Handle("DELETE /tournaments/{id}", handleDeleteTournament(queries))
 	mux.Handle("GET /tournaments/{id}/pairings/latest", handleGetLatestPairings(dbConn, queries))
 	return mux, nil
@@ -54,6 +61,11 @@ func getDbExecutor(ctx context.Context, config *Config) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 	return conn, nil
+}
+
+func getStorageClient(ctx context.Context) (*storage.Client, error) {
+	client, err := storage.NewClient(ctx)
+	return client, err
 }
 
 func handleGetTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.HandlerFunc {
@@ -94,7 +106,7 @@ func handleGetTournaments(tb *tbapi.TabroomApi, queries *sqlc.Queries) http.Hand
 	}
 }
 
-func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *sqlc.Queries) http.HandlerFunc {
+func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *sqlc.Queries, storageClient *storage.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.Atoi(r.PathValue("id"))
 		tournId := int32(id)
@@ -127,6 +139,22 @@ func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *s
 		if err != nil {
 			log.Printf("handleImportTournaments: unable to import tournament to db: %v %v", tournId, err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		pairings, err := getLatestPairings(r.Context(), conn, queries, tournId)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to get latest pairings for tournament %v after import", tournId), http.StatusInternalServerError)
+			return
+		}
+		htmlPairings := pairingsToHtml(*pairings)
+		bucketName := "duda_pairings"
+		objectName := "pairings.html"
+		wc := storageClient.Bucket(bucketName).Object(objectName).NewWriter(context.Background())
+		wc.CacheControl = "no-store"
+		defer wc.Close()
+		err = htmlPairings.Render(context.Background(), wc)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to upload pairings to GCS for tournament %v", tournId), http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusCreated)

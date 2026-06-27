@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/ShewkShewk/dudosapi/internal/db/sqlc"
@@ -195,4 +196,21 @@ func getBallotResults(content []byte) ([]BallotResult, error) {
 func getTimezone() *time.Location {
 	timeZone, _ := time.LoadLocation("America/Chicago")
 	return timeZone
+}
+
+func getSideNamesFor(event string) (string, string) {
+	eventToAffNegName := map[string][]string{
+		"world":     {"Prop", "Opp"},
+		"ws":        {"Prop", "Opp"},
+		"pol":       {"Aff", "Neg"},
+		"lincoln":   {"Aff", "Neg"},
+		"community": {"Aff", "Neg"},
+	}
+	lowercasedEventName := strings.ToLower(event)
+	for key, value := range eventToAffNegName {
+		if strings.Contains(lowercasedEventName, key) {
+			return value[0], value[1]
+		}
+	}
+	return "Aff", "Neg"
 }

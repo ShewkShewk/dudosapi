@@ -1,0 +1,133 @@
+//go:generate go tool templ generate
+
+package main
+
+import "strings"
+
+templ eventToHtml(eventIndex int, event EventPairing) {
+    {{ tableColor := "" }}
+    {{ timeString := "@ " + event.StartTime }}
+    {{ affSideName, negSideName := getSideNamesFor(event.Name) }}
+    if eventIndex % 2 == 0 {
+        {{ tableColor = "dodgerblue" }}
+    } else {
+        {{ tableColor = "orange" }}
+    }
+    {{ tableStyle := "width: 100%; border: 5px solid " + tableColor + ";" }}
+    {{ headerStyle := "background: " + tableColor + ";" }}
+    {{ colSpan := "4" }}
+    if event.Flighted {
+        {{ colSpan = "5" }}
+    }
+    <table style={tableStyle} class="center-table">
+        <tr>
+            <th colspan={colSpan} style={headerStyle}>{event.Name} Round #{event.Number} {timeString} </th>
+       </tr>
+        <tr>
+          if event.Flighted {
+            <th>F</th>
+          }
+          <th>Room</th>
+          <th>{affSideName}</th>
+          <th>{negSideName}</th>
+          <th>Judge</th>
+        </tr>
+        for indexPairing, pairing := range event.Pairings{
+            {{ room := " " }}
+            {{ teamOne := " " }}
+            {{ teamTwo := " " }}
+            {{ judge := " " }}
+            {{ rowStyle := "text-align: center;" }}
+            if indexPairing % 2 == 0 {
+                {{ rowStyle = rowStyle + " background: lightgray;" }}
+            } else {
+                {{ rowStyle = rowStyle + " background: white;" }}
+            }
+            {{ roomStyle := " " }}
+            {{ started := true }}
+            {{ judgeNames := make([]string, len(pairing.Judges)) }}
+            for i, judge := range pairing.Judges {
+                {{ judgeNames[i] = judge.Name }}
+                if !judge.Started {
+                    {{ started = false }}
+                }
+            }
+            if pairing.AffResult != nil || pairing.NegResult != nil {
+                if ((pairing.AffResult != nil && *pairing.AffResult == "BYE") || pairing.NegResult != nil && *pairing.NegResult == "BYE") {
+                    {{ room = "BYE" }}
+                    {{ roomStyle = "color: black" }}
+                } else {
+                    {{ roomStyle = "color: green" }}
+                }
+            } else if started {
+                {{ roomStyle = "color: blue" }}
+            } else {
+                {{ roomStyle = "color: red" }}
+            }
+            <tr style={rowStyle}>
+                if pairing.Room != nil {
+                    {{ room = *pairing.Room }}
+                }
+                if len(pairing.Judges) > 0  {
+                    {{ judge = strings.Join(judgeNames, ",") }}
+                }
+                if pairing.AffEntry != nil {
+                    {{ teamOne = pairing.AffEntry.Name }}
+                }
+                if pairing.NegEntry != nil {
+                    {{ teamTwo = pairing.NegEntry.Name }}
+                }
+                if event.Flighted {
+                  <td>{ pairing.Flight }</td>
+                }
+                <td style={roomStyle}>{room}</td>
+                <td>{teamOne}</td>
+                <td>{teamTwo}</td>
+                <td>{judge}</td>
+            </tr>
+        }
+    </table>
+}
+templ pairingsToHtml(tournamentPairings TournamentPairings) {
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta http-equiv="refresh" content="60">
+    </head>
+    <style>
+        th, td {
+            border: 1px solid black;
+        }
+        .tables-wrapper {
+            container-type: inline-size;
+            align-content: center
+        }
+        .tables {
+            column-count: 1;
+            column-gap: 5px;
+        }
+        @container (min-width: 1500px) {
+            .tables {
+                column-count: 2;
+            }
+        }
+        .tables > table {
+            width: 100%;
+            box-sizing: border-box;
+            break-inside: avoid;
+            margin-bottom: 5px;
+        }
+    </style>
+    <body>
+    {{ backupTime := tournamentPairings.UpdateTime }}
+    <h1 style="text-align: center; width: 100%; background: pink; border: medium solid black;">Pairings as of { backupTime }</h1>
+    <div class="tables-wrapper">
+        <div class="tables">
+        for eventIndex, event := range tournamentPairings.EventPairings{
+            @eventToHtml(eventIndex, event)
+        }
+        </div>
+    </div>
+    </body>
+    </html>
+}
