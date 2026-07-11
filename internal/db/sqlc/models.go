@@ -161,6 +161,13 @@ type Site struct {
 	Name pgtype.Text
 }
 
+type SpeakerAward struct {
+	TournamentID int32
+	EventID      int32
+	Rank         int32
+	StudentID    pgtype.Int4
+}
+
 type Student struct {
 	ID         int32
 	SchoolID   pgtype.Int4

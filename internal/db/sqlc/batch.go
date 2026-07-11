@@ -542,6 +542,62 @@ func (b *InsertSitesBatchResults) Close() error {
 	return b.br.Close()
 }
 
+const insertSpeakerAwards = `-- name: InsertSpeakerAwards :batchexec
+INSERT INTO speaker_awards(tournament_id, event_id, rank, student_id)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (tournament_id, event_id, rank) DO UPDATE
+    SET student_id = EXCLUDED.student_id
+`
+
+type InsertSpeakerAwardsBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type InsertSpeakerAwardsParams struct {
+	TournamentID int32
+	EventID      int32
+	Rank         int32
+	StudentID    pgtype.Int4
+}
+
+func (q *Queries) InsertSpeakerAwards(ctx context.Context, arg []InsertSpeakerAwardsParams) *InsertSpeakerAwardsBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.TournamentID,
+			a.EventID,
+			a.Rank,
+			a.StudentID,
+		}
+		batch.Queue(insertSpeakerAwards, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &InsertSpeakerAwardsBatchResults{br, len(arg), false}
+}
+
+func (b *InsertSpeakerAwardsBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *InsertSpeakerAwardsBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
 const insertStudent = `-- name: InsertStudent :batchexec
 INSERT INTO students(id, school_id, first_name, middle_name, last_name, grad_year)
 VALUES ($1, $2, $3, $4, $5, $6)

@@ -106,6 +106,12 @@ ON CONFLICT(id) DO UPDATE
         last_name     = EXCLUDED.last_name,
         email         = EXCLUDED.email;
 
+-- name: InsertSpeakerAwards :batchexec
+INSERT INTO speaker_awards(tournament_id, event_id, rank, student_id)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (tournament_id, event_id, rank) DO UPDATE
+    SET student_id = EXCLUDED.student_id;
+
 -- name: GetLatestPublishedRoundsPerEvent :many
 SELECT DISTINCT ON (events.name) rounds.event_id   AS event_id,
                                  events.name       AS event_name,

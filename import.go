@@ -57,12 +57,52 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 		log.Printf("importTournament: unable to import rounds for %v %v", tourn.Name, err)
 		return err
 	}
+	err = importSpeakerAwards(ctx, qtx, tournId, tourn, eventMap)
+	if err != nil {
+		log.Printf("importTournament: unable to import speaker awards for %v %v", tourn.Name, err)
+		return err
+	}
 	err = tx.Commit(ctx)
 	if err != nil {
 		log.Printf("importTournament: unable to commit import for %v %v", tourn.Name, err)
 		return err
 	}
 	return nil
+}
+
+func importSpeakerAwards(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData, eventMap map[int]any) error {
+	var speakerAwardsBatch []sqlc.InsertSpeakerAwardsParams
+	for _, category := range tourn.Categories {
+		for _, event := range category.Events {
+			eventId, err := strconv.Atoi(event.Id)
+			if err != nil {
+				log.Printf("importSpeakerAwards: unable to convert %s to event id", event.Id)
+				return err
+			}
+			// Skip events we didnt import
+			_, ok := eventMap[eventId]
+			if !ok {
+				continue
+			}
+			for _, resultSet := range event.ResultSets {
+				if resultSet.Label == "Speaker Awards" {
+					for _, result := range resultSet.Results {
+						speakerAwardsBatch = append(speakerAwardsBatch, sqlc.InsertSpeakerAwardsParams{
+							TournamentID: tournId,
+							EventID:      int32(eventId),
+							Rank:         int32(result.Rank),
+							StudentID: pgtype.Int4{
+								Int32: int32(result.Student),
+								Valid: true,
+							},
+						})
+					}
+				}
+			}
+		}
+	}
+	speakerAwardsResults := qtx.InsertSpeakerAwards(ctx, speakerAwardsBatch)
+	return batchExecErr(speakerAwardsResults.Exec, speakerAwardsResults.Close)
 }
 
 func importSitesAndRooms(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
