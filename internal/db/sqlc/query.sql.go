@@ -229,6 +229,18 @@ func (q *Queries) GetTournament(ctx context.Context, id int32) (GetTournamentRow
 	return i, err
 }
 
+const getTournamentCount = `-- name: GetTournamentCount :one
+SELECT COUNT(id) as tournament_count
+FROM tournaments
+`
+
+func (q *Queries) GetTournamentCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getTournamentCount)
+	var tournament_count int64
+	err := row.Scan(&tournament_count)
+	return tournament_count, err
+}
+
 const loadTournament = `-- name: LoadTournament :exec
 INSERT INTO tournaments (id, raw)
 VALUES ($1, $2)

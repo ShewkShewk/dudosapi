@@ -179,3 +179,7 @@ FROM matchups_with_ballots
          LEFT JOIN rooms ON room_id = rooms.id
          LEFT JOIN judges_aggregated ON matchups_with_ballots.section_id = judges_aggregated.section_id
 ORDER BY room_name;
+
+-- name: GetTournamentCount :one
+SELECT COUNT(id) as tournament_count
+FROM tournaments;

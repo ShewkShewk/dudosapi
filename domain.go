@@ -54,3 +54,7 @@ type TournamentPairings struct {
 	UpdateTime    string         `json:"updateTime"`
 	EventPairings []EventPairing `json:"eventPairings"`
 }
+
+type Summary struct {
+	TournamentCount int64 `json:"tournamentCount"`
+}

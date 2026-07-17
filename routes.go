@@ -39,6 +39,7 @@ func NewServer(config *Config) (http.Handler, error) {
 	mux.Handle("POST /tournaments/{id}/import", handleImportTournament(tb, dbConn, queries, storageClient))
 	mux.Handle("DELETE /tournaments/{id}", handleDeleteTournament(queries))
 	mux.Handle("GET /tournaments/{id}/pairings/latest", handleGetLatestPairings(dbConn, queries))
+	mux.Handle("GET /summary", handleGetSummary(queries))
 	return mux, nil
 }
 
@@ -207,6 +208,22 @@ func handleGetLatestPairings(conn *pgxpool.Pool, queries *sqlc.Queries) http.Han
 		err = encode(w, r, http.StatusOK, pairings)
 		if err != nil {
 			log.Printf("handleGetLatestPairings error from encoding %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func handleGetSummary(queries *sqlc.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		summary, err := getSummary(r.Context(), queries)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("unable to get summary"), http.StatusInternalServerError)
+			return
+		}
+		err = encode(w, r, http.StatusOK, summary)
+		if err != nil {
+			log.Printf("handleGetSummary error from encoding %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
