@@ -57,4 +57,5 @@ type TournamentPairings struct {
 
 type Summary struct {
 	TournamentCount int64 `json:"tournamentCount"`
+	RoundCount      int64 `json:"roundCount"`
 }

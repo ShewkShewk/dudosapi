@@ -183,3 +183,8 @@ ORDER BY room_name;
 -- name: GetTournamentCount :one
 SELECT COUNT(id) as tournament_count
 FROM tournaments;
+
+-- name: GetCompletedRoundCount :one
+SELECT COUNT(DISTINCT ballots.section_id)
+FROM ballots
+WHERE started = TRUE;

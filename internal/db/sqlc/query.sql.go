@@ -22,6 +22,19 @@ func (q *Queries) DeleteTournament(ctx context.Context, id int32) error {
 	return err
 }
 
+const getCompletedRoundCount = `-- name: GetCompletedRoundCount :one
+SELECT COUNT(DISTINCT ballots.section_id)
+FROM ballots
+WHERE started = TRUE
+`
+
+func (q *Queries) GetCompletedRoundCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getCompletedRoundCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getLatestPublishedRoundsPerEvent = `-- name: GetLatestPublishedRoundsPerEvent :many
 SELECT DISTINCT ON (events.name) rounds.event_id   AS event_id,
                                  events.name       AS event_name,
