@@ -188,3 +188,11 @@ FROM tournaments;
 SELECT COUNT(DISTINCT ballots.section_id)
 FROM ballots
 WHERE started = TRUE;
+
+-- name: InsertSchoolEntries :batchexec
+INSERT INTO school_entries(tournament_id, school_id, on_site)
+VALUES ($1, $2, $3)
+ON CONFLICT (tournament_id, school_id) DO UPDATE
+    SET tournament_id = EXCLUDED.tournament_id,
+        school_id     = EXCLUDED.school_id,
+        on_site       = EXCLUDED.on_site;

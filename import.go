@@ -32,7 +32,7 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 		log.Printf("importTournament: unable to import judges for %v %v", tourn.Name, err)
 		return err
 	}
-	err = importSchools(ctx, qtx, tourn)
+	err = importSchools(ctx, qtx, tournId, tourn)
 	if err != nil {
 		log.Printf("importTournament: unable to import schools for %v %v", tourn.Name, err)
 		return err
@@ -176,19 +176,40 @@ func importJudges(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *
 	return batchExecErr(results.Exec, results.Close)
 }
 
-func importSchools(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {
-	batch := make([]sqlc.InsertSchoolParams, len(tourn.Schools))
+func importSchools(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData) error {
+	insertSchoolsBatch := make([]sqlc.InsertSchoolParams, len(tourn.Schools))
+	insertSchoolEntryBatch := make([]sqlc.InsertSchoolEntriesParams, len(tourn.Schools))
 	for i, school := range tourn.Schools {
-		batch[i] = sqlc.InsertSchoolParams{
+		schoolId := int32(school.Chapter)
+		insertSchoolsBatch[i] = sqlc.InsertSchoolParams{
 			ID: int32(school.Chapter),
 			Name: pgtype.Text{
 				String: school.Name,
 				Valid:  true,
 			},
 		}
+		insertSchoolEntryBatch[i] = sqlc.InsertSchoolEntriesParams{
+			TournamentID: tournId,
+			SchoolID:     schoolId,
+			OnSite: pgtype.Bool{
+				Bool:  school.Onsite == 1,
+				Valid: true,
+			},
+		}
 	}
-	results := qtx.InsertSchool(ctx, batch)
-	return batchExecErr(results.Exec, results.Close)
+	insertSchoolResults := qtx.InsertSchool(ctx, insertSchoolsBatch)
+	err := batchExecErr(insertSchoolResults.Exec, insertSchoolResults.Close)
+	if err != nil {
+		log.Printf("importSchools failed to insert schools into db %v", err)
+		return err
+	}
+	insertSchoolEntryResults := qtx.InsertSchoolEntries(ctx, insertSchoolEntryBatch)
+	err = batchExecErr(insertSchoolEntryResults.Exec, insertSchoolEntryResults.Close)
+	if err != nil {
+		log.Printf("importSchools failed to insert school entries into db %v", err)
+		return err
+	}
+	return nil
 }
 
 func importEvents(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData) (map[int]any, error) {

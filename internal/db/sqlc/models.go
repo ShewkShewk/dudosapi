@@ -149,6 +149,12 @@ type School struct {
 	Name pgtype.Text
 }
 
+type SchoolEntry struct {
+	TournamentID int32
+	SchoolID     int32
+	OnSite       pgtype.Bool
+}
+
 type Section struct {
 	ID      int32
 	RoundID pgtype.Int4

@@ -106,6 +106,14 @@ CREATE TABLE speaker_awards
     tournament_id SERIAL REFERENCES tournaments (id) ON DELETE CASCADE,
     event_id      SERIAL REFERENCES events (id) ON DELETE CASCADE,
     rank          INT NOT NULL,
-    student_id    SERIAL REFERENCES students (id) ON DELETE CASCADE,
+    student_id    SERIAL,
     PRIMARY KEY (tournament_id, event_id, rank)
+);
+
+CREATE TABLE school_entries
+(
+    tournament_id SERIAL REFERENCES tournaments (id),
+    school_id     SERIAL REFERENCES schools (id),
+    on_site       BOOLEAN,
+    PRIMARY KEY (tournament_id, school_id)
 );
