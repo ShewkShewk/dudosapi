@@ -217,6 +217,42 @@ func (q *Queries) GetPairingsWithBallots(ctx context.Context, dollar_1 []int32) 
 	return items, nil
 }
 
+const getSchoolStatus = `-- name: GetSchoolStatus :many
+SELECT s.id       AS school_id,
+       s.name     AS school_name,
+       se.on_site AS checked_in
+FROM school_entries se
+         JOIN public.schools s on se.school_id = s.id
+WHERE se.tournament_id = $1
+ORDER BY school_name
+`
+
+type GetSchoolStatusRow struct {
+	SchoolID   int32
+	SchoolName pgtype.Text
+	CheckedIn  pgtype.Bool
+}
+
+func (q *Queries) GetSchoolStatus(ctx context.Context, tournamentID int32) ([]GetSchoolStatusRow, error) {
+	rows, err := q.db.Query(ctx, getSchoolStatus, tournamentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSchoolStatusRow
+	for rows.Next() {
+		var i GetSchoolStatusRow
+		if err := rows.Scan(&i.SchoolID, &i.SchoolName, &i.CheckedIn); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTournament = `-- name: GetTournament :one
 SELECT id, date, name, updated_time
 FROM tournaments

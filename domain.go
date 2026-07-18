@@ -59,3 +59,9 @@ type Summary struct {
 	TournamentCount int64 `json:"tournamentCount"`
 	RoundCount      int64 `json:"roundCount"`
 }
+
+type SchoolStatus struct {
+	Id        int32  `json:"id"`
+	Name      string `json:"schoolName"`
+	CheckedIn bool   `json:"checkedIn"`
+}

@@ -87,6 +87,23 @@ func getLatestPairings(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Qu
 	}, nil
 }
 
+func getSchoolsStatus(ctx context.Context, queries *sqlc.Queries, tournId int32) ([]SchoolStatus, error) {
+	getSchoolStatusResult, err := queries.GetSchoolStatus(ctx, tournId)
+	if err != nil {
+		log.Printf("getSchoolStatus unable to get school status from DB %v", err)
+		return nil, err
+	}
+	results := make([]SchoolStatus, len(getSchoolStatusResult))
+	for i, result := range getSchoolStatusResult {
+		results[i] = SchoolStatus{
+			Id:        result.SchoolID,
+			Name:      result.SchoolName.String,
+			CheckedIn: result.CheckedIn.Bool,
+		}
+	}
+	return results, nil
+}
+
 func toPairing(row sqlc.GetPairingsWithBallotsRow) (*Pairing, error) {
 	var sectionId int
 	if row.SectionID.Valid {

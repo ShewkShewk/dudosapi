@@ -36,11 +36,35 @@ func NewServer(config *Config) (http.Handler, error) {
 	}
 	queries := sqlc.New(dbConn)
 	mux.Handle("GET /tournaments", handleGetTournaments(tb, queries))
+	mux.Handle("GET /tournaments/{id}/schools/status", handleGetTournamentSchoolsStatus(queries))
 	mux.Handle("POST /tournaments/{id}/import", handleImportTournament(tb, dbConn, queries, storageClient))
 	mux.Handle("DELETE /tournaments/{id}", handleDeleteTournament(queries))
 	mux.Handle("GET /tournaments/{id}/pairings/latest", handleGetLatestPairings(dbConn, queries))
 	mux.Handle("GET /summary", handleGetSummary(queries))
 	return mux, nil
+}
+
+func handleGetTournamentSchoolsStatus(queries *sqlc.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid tournament id", http.StatusBadRequest)
+			return
+		}
+		tournId := int32(id)
+		result, err := getSchoolsStatus(r.Context(), queries, tournId)
+		if err != nil {
+			log.Printf("handleGetTournamentSchoolsStatus error when retrieving school status %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = encode(w, r, http.StatusOK, result)
+		if err != nil {
+			log.Printf("handleGetTournamentSchoolsStatus error encoding result %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
 }
 
 func getTabroomApi(config *Config) (*tbapi.TabroomApi, error) {

@@ -196,3 +196,12 @@ ON CONFLICT (tournament_id, school_id) DO UPDATE
     SET tournament_id = EXCLUDED.tournament_id,
         school_id     = EXCLUDED.school_id,
         on_site       = EXCLUDED.on_site;
+
+-- name: GetSchoolStatus :many
+SELECT s.id       AS school_id,
+       s.name     AS school_name,
+       se.on_site AS checked_in
+FROM school_entries se
+         JOIN public.schools s on se.school_id = s.id
+WHERE se.tournament_id = $1
+ORDER BY school_name;
