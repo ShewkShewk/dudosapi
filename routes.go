@@ -166,31 +166,33 @@ func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *s
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		pairings, err := getLatestPairings(r.Context(), conn, queries, tournId)
+		err = publishPairings(r.Context(), storageClient, conn, queries, tournId)
 		if err != nil {
-			log.Printf("unable to get latest pairings for tournament %v after import %v", tournId, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		htmlPairings := pairingsToHtml(*pairings)
-		bucketName := "duda_pairings"
-		objectName := "pairings.html"
-		wc := storageClient.Bucket(bucketName).Object(objectName).NewWriter(r.Context())
-		wc.CacheControl = "no-store"
-		err = htmlPairings.Render(context.Background(), wc)
-		if err != nil {
-			log.Printf("unable to render pairings for tournament %v %v", tournId, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		err = wc.Close()
-		if err != nil {
-			log.Printf("unable to upload pairings for tournament %v %v", tournId, err)
+			log.Printf("handleImportTournaments: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
 	}
+}
+
+func publishPairings(ctx context.Context, storageClient *storage.Client, conn *pgxpool.Pool, queries *sqlc.Queries, tournId int32) error {
+	pairings, err := getLatestPairings(ctx, conn, queries, tournId)
+	if err != nil {
+		return fmt.Errorf("unable to get latest pairings for tournament %v after import: %w", tournId, err)
+	}
+	htmlPairings := pairingsToHtml(*pairings)
+	bucketName := "duda_pairings"
+	objectName := "pairings.html"
+	wc := storageClient.Bucket(bucketName).Object(objectName).NewWriter(ctx)
+	wc.CacheControl = "no-store"
+	if err := htmlPairings.Render(context.Background(), wc); err != nil {
+		return fmt.Errorf("unable to render pairings for tournament %v: %w", tournId, err)
+	}
+	if err := wc.Close(); err != nil {
+		return fmt.Errorf("unable to upload pairings for tournament %v: %w", tournId, err)
+	}
+	return nil
 }
 
 func handleDeleteTournament(queries *sqlc.Queries) http.HandlerFunc {
