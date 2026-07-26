@@ -13,6 +13,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/ShewkShewk/dudosapi/internal/db/sqlc"
 	"github.com/ShewkShewk/tbapi"
+	"github.com/a-h/templ"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -184,13 +185,21 @@ func publishPairings(ctx context.Context, storageClient *storage.Client, conn *p
 	htmlPairings := pairingsToHtml(*pairings)
 	bucketName := "duda_pairings"
 	objectName := "pairings.html"
+	if err := uploadComponent(ctx, storageClient, htmlPairings, bucketName, objectName); err != nil {
+		return fmt.Errorf("unable to upload pairings for tournament %v: %w", tournId, err)
+	}
+	return nil
+}
+
+func uploadComponent(ctx context.Context, storageClient *storage.Client, component templ.Component, bucketName, objectName string) error {
 	wc := storageClient.Bucket(bucketName).Object(objectName).NewWriter(ctx)
 	wc.CacheControl = "no-store"
-	if err := htmlPairings.Render(context.Background(), wc); err != nil {
-		return fmt.Errorf("unable to render pairings for tournament %v: %w", tournId, err)
+	if err := component.Render(ctx, wc); err != nil {
+		_ = wc.Close()
+		return fmt.Errorf("unable to render component: %w", err)
 	}
 	if err := wc.Close(); err != nil {
-		return fmt.Errorf("unable to upload pairings for tournament %v: %w", tournId, err)
+		return fmt.Errorf("unable to close storage writer: %w", err)
 	}
 	return nil
 }
