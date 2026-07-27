@@ -173,6 +173,12 @@ func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *s
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		err = publishSchoolsStatus(r.Context(), storageClient, queries, tournId)
+		if err != nil {
+			log.Printf("handleImportTournaments: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -187,6 +193,20 @@ func publishPairings(ctx context.Context, storageClient *storage.Client, conn *p
 	objectName := "pairings.html"
 	if err := uploadComponent(ctx, storageClient, htmlPairings, bucketName, objectName); err != nil {
 		return fmt.Errorf("unable to upload pairings for tournament %v: %w", tournId, err)
+	}
+	return nil
+}
+
+func publishSchoolsStatus(ctx context.Context, storageClient *storage.Client, queries *sqlc.Queries, tournId int32) error {
+	status, err := getTournamentSchoolsStatus(ctx, queries, tournId)
+	if err != nil {
+		return fmt.Errorf("unable to get school status for tournament %v after import: %w", tournId, err)
+	}
+	htmlStatus := schoolsToHtml(*status)
+	bucketName := "duda_pairings"
+	objectName := "status.html"
+	if err := uploadComponent(ctx, storageClient, htmlStatus, bucketName, objectName); err != nil {
+		return fmt.Errorf("unable to upload school status for tournament %v: %w", tournId, err)
 	}
 	return nil
 }

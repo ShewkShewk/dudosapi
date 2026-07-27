@@ -21,19 +21,9 @@ func getLatestPairings(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Qu
 	}
 	defer tx.Rollback(ctx)
 	qtx := queries.WithTx(tx)
-	tournamentData, err := qtx.GetTournament(ctx, tournId)
+
+	tournamentName, updateTime, err := getTournamentMetadata(ctx, qtx, tournId)
 	if err != nil {
-		log.Printf("getLatestPairings: unable to get tournament data for %v %v", tournId, err)
-		return nil, err
-	}
-	if !tournamentData.Name.Valid || !tournamentData.Date.Valid || !tournamentData.UpdatedTime.Valid {
-		log.Printf("getLatestPairings: invalid data returned for %v", tournId)
-		return nil, err
-	}
-	tournamentName := tournamentData.Name.String
-	updateTime, err := utcToCentralTime(tournamentData.UpdatedTime.String)
-	if err != nil {
-		log.Printf("getLatestPairings: unable to convert time %v to timezone for tournament %v", tournamentData.UpdatedTime.String, tournId)
 		return nil, err
 	}
 	rows, err := qtx.GetLatestPublishedRoundsPerEvent(ctx, pgtype.Int4{
@@ -85,6 +75,43 @@ func getLatestPairings(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Qu
 		UpdateTime:    updateTime,
 		EventPairings: eventPairings,
 	}, nil
+}
+
+func getTournamentSchoolsStatus(ctx context.Context, queries *sqlc.Queries, tournId int32) (*TournamentSchoolsStatus, error) {
+	name, updateTime, err := getTournamentMetadata(ctx, queries, tournId)
+	if err != nil {
+		return nil, err
+	}
+
+	schools, err := getSchoolsStatus(ctx, queries, tournId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TournamentSchoolsStatus{
+		Name:          name,
+		UpdateTime:    updateTime,
+		SchoolsStatus: schools,
+	}, nil
+}
+
+func getTournamentMetadata(ctx context.Context, queries *sqlc.Queries, tournId int32) (string, string, error) {
+	tournamentData, err := queries.GetTournament(ctx, tournId)
+	if err != nil {
+		log.Printf("getTournamentMetadata: unable to get tournament data for %v %v", tournId, err)
+		return "", "", err
+	}
+	if !tournamentData.Name.Valid || !tournamentData.Date.Valid || !tournamentData.UpdatedTime.Valid {
+		log.Printf("getTournamentMetadata: invalid data returned for %v", tournId)
+		return "", "", fmt.Errorf("invalid tournament data")
+	}
+	tournamentName := tournamentData.Name.String
+	updateTime, err := utcToCentralTime(tournamentData.UpdatedTime.String)
+	if err != nil {
+		log.Printf("getTournamentMetadata: unable to convert time %v to timezone for tournament %v", tournamentData.UpdatedTime.String, tournId)
+		return "", "", err
+	}
+	return tournamentName, updateTime, nil
 }
 
 func getSchoolsStatus(ctx context.Context, queries *sqlc.Queries, tournId int32) ([]SchoolStatus, error) {

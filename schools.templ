@@ -1,0 +1,53 @@
+//go:generate go tool templ generate
+
+package main
+
+templ schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) {
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta http-equiv="refresh" content="60">
+    </head>
+    <style>
+        th, td {
+            border: 1px solid black;
+            text-align: center;
+        }
+        .center-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+        .header-row {
+            background-color: dodgerblue;
+            color: white;
+        }
+    </style>
+    <body>
+    {{ backupTime := tournamentSchoolsStatus.UpdateTime }}
+    <h1 style="text-align: center; width: 100%; background: pink; border: medium solid black;">Schools status as of { backupTime }</h1>
+    <table class="center-table">
+        <tr class="header-row">
+            <th>School Name</th>
+            <th>Checked In</th>
+        </tr>
+        for i, school := range tournamentSchoolsStatus.SchoolsStatus {
+            {{ rowStyle := "" }}
+            if i % 2 == 0 {
+                {{ rowStyle = "background: lightgray;" }}
+            } else {
+                {{ rowStyle = "background: white;" }}
+            }
+            <tr style={rowStyle}>
+                <td>{ school.Name }</td>
+                if school.CheckedIn {
+                    <td style="color: green; font-weight: bold;">YES</td>
+                } else {
+                    <td style="color: red; font-weight: bold;">NO</td>
+                }
+            </tr>
+        }
+    </table>
+    </body>
+    </html>
+}

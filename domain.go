@@ -65,3 +65,9 @@ type SchoolStatus struct {
 	Name      string `json:"schoolName"`
 	CheckedIn bool   `json:"checkedIn"`
 }
+
+type TournamentSchoolsStatus struct {
+	Name          string         `json:"name"`
+	UpdateTime    string         `json:"updateTime"`
+	SchoolsStatus []SchoolStatus `json:"schoolsStatus"`
+}
