@@ -41,11 +41,11 @@ templ schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) {
 	</style>
 	<body>
 	{{ backupTime := tournamentSchoolsStatus.UpdateTime }}
-	<h1 style="text-align: center; width: 100%; background: pink; border: medium solid black;">Schools status as of { backupTime }</h1>
+	<h1 style="text-align: center; width: 100%; background: pink; border: medium solid black;">School Check-In Status as of { backupTime }</h1>
 	<table class="center-table">
 		<tr class="header-row">
-			<th>Not Checked In</th>
-			<th>Checked In</th>
+			<th style="background-color: red;">Not Checked In</th>
+			<th style="background-color: green;">Checked In</th>
 		</tr>
 		for i := 0; i < maxRows; i++ {
 			{{ rowStyle := "" }}

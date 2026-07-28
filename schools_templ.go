@@ -52,20 +52,20 @@ func schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) templ.Compon
 			return templ_7745c5c3_Err
 		}
 		backupTime := tournamentSchoolsStatus.UpdateTime
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h1 style=\"text-align: center; width: 100%; background: pink; border: medium solid black;\">Schools status as of ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<h1 style=\"text-align: center; width: 100%; background: pink; border: medium solid black;\">School Check-In Status as of ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(backupTime)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 44, Col: 125}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 44, Col: 133}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</h1><table class=\"center-table\"><tr class=\"header-row\"><th>Not Checked In</th><th>Checked In</th></tr>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</h1><table class=\"center-table\"><tr class=\"header-row\"><th style=\"background-color: red;\">Not Checked In</th><th style=\"background-color: green;\">Checked In</th></tr>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
