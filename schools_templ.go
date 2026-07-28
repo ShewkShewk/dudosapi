@@ -47,7 +47,7 @@ func schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) templ.Compon
 		}
 		ctx = templ.ClearChildren(ctx)
 		notCheckedIn, checkedIn, maxRows := splitSchools(tournamentSchoolsStatus.SchoolsStatus)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html><head><meta http-equiv=\"refresh\" content=\"60\"></head><style>\n\t\tth, td {\n\t\t\tborder: 1px solid black;\n\t\t\ttext-align: center;\n\t\t}\n\t\t.center-table {\n\t\t\twidth: 100%;\n\t\t\tborder-collapse: collapse;\n\t\t\tmargin-bottom: 5px;\n\t\t}\n\t\t.header-row {\n\t\t\tbackground-color: dodgerblue;\n\t\t\tcolor: white;\n\t\t}\n\t</style><body>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html><head><meta http-equiv=\"refresh\" content=\"60\"></head><style>\n\t\tth, td {\n\t\t\tborder: 1px solid black;\n\t\t\ttext-align: center;\n\t\t}\n\t\t.center-table {\n\t\t\twidth: 100%;\n\t\t\tborder-collapse: collapse;\n\t\t\tmargin-bottom: 5px;\n\t\t\ttable-layout: fixed;\n\t\t}\n\t\t.header-row {\n\t\t\tbackground-color: dodgerblue;\n\t\t\tcolor: white;\n\t\t}\n\t</style><body>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -59,13 +59,13 @@ func schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) templ.Compon
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(backupTime)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 44, Col: 133}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 45, Col: 133}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</h1><table class=\"center-table\"><tr class=\"header-row\"><th style=\"background-color: red;\">Not Checked In</th><th style=\"background-color: green;\">Checked In</th></tr>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</h1><table class=\"center-table\"><tr class=\"header-row\"><th style=\"background-color: red; width: 50%;\">Not Checked In</th><th style=\"background-color: green; width: 50%;\">Checked In</th></tr>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -83,7 +83,7 @@ func schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) templ.Compon
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(rowStyle)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 57, Col: 22}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 58, Col: 22}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -101,7 +101,7 @@ func schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) templ.Compon
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(notCheckedIn[i].Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 59, Col: 70}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 60, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -125,7 +125,7 @@ func schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) templ.Compon
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(checkedIn[i].Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 64, Col: 69}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `schools.templ`, Line: 65, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {

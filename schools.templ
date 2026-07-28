@@ -33,6 +33,7 @@ templ schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) {
 			width: 100%;
 			border-collapse: collapse;
 			margin-bottom: 5px;
+			table-layout: fixed;
 		}
 		.header-row {
 			background-color: dodgerblue;
@@ -44,8 +45,8 @@ templ schoolsToHtml(tournamentSchoolsStatus TournamentSchoolsStatus) {
 	<h1 style="text-align: center; width: 100%; background: pink; border: medium solid black;">School Check-In Status as of { backupTime }</h1>
 	<table class="center-table">
 		<tr class="header-row">
-			<th style="background-color: red;">Not Checked In</th>
-			<th style="background-color: green;">Checked In</th>
+			<th style="background-color: red; width: 50%;">Not Checked In</th>
+			<th style="background-color: green; width: 50%;">Checked In</th>
 		</tr>
 		for i := 0; i < maxRows; i++ {
 			{{ rowStyle := "" }}
