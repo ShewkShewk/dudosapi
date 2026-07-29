@@ -53,7 +53,7 @@ func handleGetTournamentSchoolsStatus(queries *sqlc.Queries) http.HandlerFunc {
 			return
 		}
 		tournId := int32(id)
-		result, err := getSchoolsStatus(r.Context(), queries, tournId)
+		result, err := getTournamentSchoolsStatus(r.Context(), queries, tournId)
 		if err != nil {
 			log.Printf("handleGetTournamentSchoolsStatus error when retrieving school status %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
