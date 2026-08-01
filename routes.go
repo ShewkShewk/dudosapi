@@ -273,7 +273,7 @@ func handleGetSummary(queries *sqlc.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		summary, err := getSummary(r.Context(), queries)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("unable to get summary"), http.StatusInternalServerError)
+			http.Error(w, "unable to get summary", http.StatusInternalServerError)
 			return
 		}
 		err = encode(w, r, http.StatusOK, summary)
