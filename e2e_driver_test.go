@@ -4,15 +4,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"io"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
-
-	"cloud.google.com/go/storage"
 )
 
 // TestImportGoldenPath drives the real, unmodified NewServer handler
@@ -150,64 +145,17 @@ func assertPublishedPages(t *testing.T, ctx context.Context) {
 	}
 	defer storageClient.Close()
 
-	pairingsHTML := readObject(t, ctx, storageClient, "pairings.html")
+	pairingsHTML := readGcsBlob(t, ctx, storageClient, "pairings.html")
 	for _, want := range []string{"AA1", "BB1", "Room 101", "Jane Judge", "Public Forum Round #1"} {
 		if !strings.Contains(pairingsHTML, want) {
 			t.Errorf("pairings.html missing %q", want)
 		}
 	}
 
-	statusHTML := readObject(t, ctx, storageClient, "status.html")
+	statusHTML := readGcsBlob(t, ctx, storageClient, "status.html")
 	for _, want := range []string{"Alpha High", "Beta High"} {
 		if !strings.Contains(statusHTML, want) {
 			t.Errorf("status.html missing %q", want)
 		}
 	}
-}
-
-func postImport(t *testing.T, url string) {
-	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, url, nil)
-	if err != nil {
-		t.Fatalf("build import request: %v", err)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatalf("import request: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
-		t.Fatalf("import status = %d, want %d: %s", resp.StatusCode, http.StatusCreated, body)
-	}
-}
-
-func getJSON(t *testing.T, url string, v any) {
-	t.Helper()
-	resp, err := http.Get(url)
-	if err != nil {
-		t.Fatalf("GET %s: %v", url, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		t.Fatalf("GET %s: status = %d: %s", url, resp.StatusCode, body)
-	}
-	if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
-		t.Fatalf("GET %s: decode: %v", url, err)
-	}
-}
-
-func readObject(t *testing.T, ctx context.Context, client *storage.Client, name string) string {
-	t.Helper()
-	r, err := client.Bucket(gcsBucketName).Object(name).NewReader(ctx)
-	if err != nil {
-		t.Fatalf("read object %s: %v", name, err)
-	}
-	defer r.Close()
-	content, err := io.ReadAll(r)
-	if err != nil {
-		t.Fatalf("read object %s: %v", name, err)
-	}
-	return string(content)
 }

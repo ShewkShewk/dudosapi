@@ -34,17 +34,7 @@ func TestFakeGCSUploadRoundTrip(t *testing.T) {
 		t.Fatalf("uploadComponent: %v", err)
 	}
 
-	reader, err := storageClient.Bucket(gcsBucketName).Object(objectName).NewReader(ctx)
-	if err != nil {
-		t.Fatalf("NewReader: %v", err)
-	}
-	defer reader.Close()
-
-	got, err := io.ReadAll(reader)
-	if err != nil {
-		t.Fatalf("ReadAll: %v", err)
-	}
-	if string(got) != content {
+	if got := readGcsBlob(t, ctx, storageClient, objectName); got != content {
 		t.Fatalf("object content = %q, want %q", got, content)
 	}
 }
