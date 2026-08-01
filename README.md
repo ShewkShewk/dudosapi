@@ -9,7 +9,6 @@ tournament-day displays to poll.
 
 - [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md) — local setup, migrations, code generation, project layout
 - [`docs/TESTING.md`](./docs/TESTING.md) — the end-to-end test suite
-- [`CLAUDE.md`](./CLAUDE.md) — auth model (Cloud Run IAM) and deployment notes
 
 ## Tech stack
 

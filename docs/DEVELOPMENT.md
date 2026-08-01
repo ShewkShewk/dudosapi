@@ -2,8 +2,7 @@
 
 Local setup, migrations, code generation, and project layout for working on
 dudosapi. See [`README.md`](../README.md) for what the service does and its
-API, [`CLAUDE.md`](../CLAUDE.md) for the auth model and deployment, and
-[`TESTING.md`](./TESTING.md) for the end-to-end test suite.
+API, and [`TESTING.md`](./TESTING.md) for the end-to-end test suite.
 
 ## Prerequisites
 
@@ -48,8 +47,7 @@ API, [`CLAUDE.md`](../CLAUDE.md) for the auth model and deployment, and
    go run .
    ```
 
-   It listens on `:8080` (or `$PORT`) with no auth locally — see `CLAUDE.md` for
-   why that's fine on localhost but not elsewhere.
+   It listens on `:8080` (or `$PORT`) with no auth locally.
 
 `requests.http` has example requests for every endpoint (works with the
 JetBrains HTTP client or the VS Code REST Client extension).
