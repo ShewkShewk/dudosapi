@@ -99,6 +99,20 @@ sources, don't hand-edit the output:
 `requests.http` has example requests for all of these (works with the JetBrains
 HTTP client or the VS Code REST Client extension).
 
+## Testing
+
+There's an end-to-end suite that stands up Postgres and a GCS emulator via
+Docker and a fake Tabroom server, then drives the real HTTP handlers through
+a full import:
+
+```sh
+go test -tags=e2e ./...
+```
+
+It's gated behind the `e2e` build tag so plain `go test ./...` stays fast
+and Docker-free. See [`TESTING.md`](./TESTING.md) for what it stands up, the
+file layout, and how to add new scenarios.
+
 ## Project layout
 
 ```
