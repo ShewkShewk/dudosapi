@@ -37,8 +37,14 @@ func run(config *Config) error {
 }
 
 func main() {
+	// Cloud Run injects PORT and is free to pick something other than 8080.
+	addr := ":8080"
+	if port := os.Getenv("PORT"); port != "" {
+		addr = ":" + port
+	}
+
 	if err := run(&Config{
-		addr: ":8080",
+		addr: addr,
 		tabroomConfig: &TabroomConfig{
 			hostname: os.Getenv("TABROOM_HOSTNAME"),
 			username: os.Getenv("TABROOM_USERNAME"),
