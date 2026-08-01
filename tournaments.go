@@ -243,7 +243,7 @@ func getBallotResults(content []byte) ([]BallotResult, error) {
 	err := json.Unmarshal(content, &ballots)
 	if err != nil {
 		log.Printf("getBallotResult: unable to unmarshall %v to TeamBallot %v", content, err)
-		return nil, nil
+		return nil, err
 	}
 	toReturn := make([]BallotResult, len(ballots))
 	for i, ballot := range ballots {
