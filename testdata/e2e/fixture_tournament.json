@@ -1,0 +1,149 @@
+{
+  "name": "Fixture Debate Invitational",
+  "start": "2026-08-01 09:00:00",
+  "backup_created": "2026-08-01T18:05:00",
+  "categories": [
+    {
+      "judges": [
+        {
+          "id": "1",
+          "person": 501,
+          "first": "Jane",
+          "last": "Judge",
+          "email": "jane.judge@example.com"
+        }
+      ],
+      "events": [
+        {
+          "id": "1",
+          "name": "Public Forum",
+          "type": "debate",
+          "result_sets": [
+            {
+              "label": "Speaker Awards",
+              "results": [
+                {
+                  "rank": 1,
+                  "student": 1
+                }
+              ]
+            }
+          ],
+          "rounds": [
+            {
+              "id": "1",
+              "name": 1,
+              "start_time": "2026-08-01 09:00:00",
+              "published": 1,
+              "sections": [
+                {
+                  "id": "1",
+                  "room": 1,
+                  "flight": "1",
+                  "ballots": [
+                    {
+                      "id": "1",
+                      "entry": 10,
+                      "judge": 1,
+                      "chair": 1,
+                      "panel": "1",
+                      "side": 1,
+                      "started_by": 1,
+                      "scores": [
+                        {
+                          "id": 1,
+                          "tag": "winloss",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    {
+                      "id": "2",
+                      "entry": 20,
+                      "judge": 1,
+                      "chair": 1,
+                      "panel": "1",
+                      "side": 2,
+                      "started_by": 1,
+                      "scores": [
+                        {
+                          "id": 2,
+                          "tag": "winloss",
+                          "value": 0
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "schools": [
+    {
+      "chapter": 1,
+      "code": "AH",
+      "name": "Alpha High",
+      "onsite": 1,
+      "students": [
+        {
+          "id": "1",
+          "chapter": 1,
+          "first": "Alice",
+          "middle": "",
+          "last": "Anderson",
+          "grad_year": 2026
+        }
+      ],
+      "entries": [
+        {
+          "id": "10",
+          "event": 1,
+          "code": "AA1",
+          "active": 1,
+          "students": ["1"]
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "code": "BH",
+      "name": "Beta High",
+      "onsite": 0,
+      "students": [
+        {
+          "id": "2",
+          "chapter": 2,
+          "first": "Bob",
+          "middle": "",
+          "last": "Baker",
+          "grad_year": 2027
+        }
+      ],
+      "entries": [
+        {
+          "id": "20",
+          "event": 1,
+          "code": "BB1",
+          "active": 1,
+          "students": ["2"]
+        }
+      ]
+    }
+  ],
+  "sites": [
+    {
+      "id": "1",
+      "name": "Main Site",
+      "rooms": [
+        {
+          "id": "1",
+          "name": "Room 101"
+        }
+      ]
+    }
+  ]
+}
