@@ -67,6 +67,61 @@ Object names are fixed — `pairings.html` and `status.html` — regardless of
 tournament id, so only one tournament's output is live at a time. Importing a
 second tournament overwrites the first one's published pages.
 
+## Adding end-to-end tests
+
+The e2e suite (`e2e_*_test.go`, root package, `//go:build e2e`) drives the
+real `NewServer(cfg)` handler through a full import against fake/containerized
+dependencies — no mocks of app code. See [`docs/TESTING.md`](./docs/TESTING.md)
+for the full rationale; this section is the quick-reference for adding to it.
+
+Build and run:
+
+```sh
+go vet -tags=e2e ./...                              # fast correctness check, no Docker
+go test -tags=e2e ./...                              # full suite, needs Docker running
+go test -tags=e2e -run TestImportScenarios -v ./...   # iterate on scenarios
+```
+
+Plain `go build`/`go test ./...` (no `-tags=e2e`) never touches these files —
+that's the point of the build tag, so routine work stays Docker-free.
+
+To add a new scenario:
+
+1. Drop a fixture JSON in `testdata/e2e/` — a `tbapi.TournamentData` payload
+   trimmed to whatever `import.go` actually reads (unrecognized/missing JSON
+   fields are fine).
+2. Add a builder in `e2e_scenarios_test.go` (copy `goldenPathScenario`'s
+   shape) returning an `e2eScenario` with the fixture path, tournament
+   id/date/name, and the exact expected `TournamentPairings`,
+   `TournamentSchoolsStatus`, and `Summary` values.
+3. Append the new builder's result to the `scenarios` slice in
+   `TestImportScenarios` (`e2e_test.go`).
+
+Write no new assertion code — `runScenario` (`e2e_driver_test.go`) and its
+`assertDeepEqual` helper already run every scenario end to end (import →
+read back pairings/status/summary JSON → check published GCS HTML); only the
+expected values change per scenario.
+
+Two correctness traps in expected values, both easy to get wrong because
+`assertDeepEqual` does a full `reflect.DeepEqual`, not a spot-check:
+
+- **Times are in `America/Chicago`**, not the fixture's timezone —
+  `getTimezone()` is hardcoded, and `time.Parse` with no zone in the layout
+  reads the fixture's digits as UTC. So a fixture's `"09:00:00"` becomes
+  `4:00AM` in the expected value during daylight saving (CDT, UTC-5).
+- **`Flighted` is `true` only when a pairing's flight number is `> 1`** — a
+  round with a single flight is still `Flighted: false`.
+
+Fake dependencies (`e2e_tabroom_fake_test.go`, `e2e_postgres_test.go`,
+`e2e_gcs_test.go`) shouldn't need touching for a new scenario. If a change
+there does become necessary, prefer whatever environment variables or flags
+the real dependency documents over an undocumented endpoint found by trial
+and error — `fake-gcs-server`'s `FAKE_GCS_EXTERNAL_URL`/`FAKE_GCS_PUBLIC_HOST`
+env vars (verified via the project's own README and by extracting strings
+from its binary) are the reason this suite's GCS setup works at all; an
+earlier version of this code used an undocumented internal endpoint instead
+and was corrected.
+
 ## Local development
 
 `.env` supplies config through `godotenv/autoload` (blank-imported in `main.go`),
