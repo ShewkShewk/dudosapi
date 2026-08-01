@@ -1,5 +1,8 @@
 # Testing
 
+See [`README.md`](./README.md) for what the service does and
+[`DEVELOPMENT.md`](./DEVELOPMENT.md) for general local setup.
+
 There's currently one layer of automated testing: an end-to-end suite that
 stands up every local dependency the app needs (Tabroom, Postgres, GCS) and
 drives the real, unmodified HTTP handlers through a full import.
