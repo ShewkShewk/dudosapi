@@ -4,30 +4,118 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
 
-// TestImportGoldenPath drives the real, unmodified NewServer handler
-// through the whole workflow - import a tournament from the fake Tabroom
-// server, then read it back via every read endpoint - and checks both the
-// JSON API responses and what actually landed in the published GCS bucket.
-// This is the test the whole e2e harness (fake Tabroom, testcontainers
-// Postgres, fake-gcs-server) exists to support.
-func TestImportGoldenPath(t *testing.T) {
+// e2eScenario describes one full import-and-verify pass: which fixture the
+// fake Tabroom server should serve, and what the app is expected to produce
+// for it. New scenarios (byes, forfeits, re-import, ...) are added to
+// importScenarios below without touching runScenario or the comparison
+// logic - only the expected values change.
+type e2eScenario struct {
+	name           string
+	tournamentID   int
+	tournamentDate string // YYYY-MM-DD, matches the fake Tabroom listing's date column
+	tournamentName string
+	fixturePath    string
+
+	wantPairings      TournamentPairings
+	wantSchoolsStatus TournamentSchoolsStatus
+	wantSummary       Summary
+
+	wantPairingsHTMLContains []string
+	wantStatusHTMLContains   []string
+}
+
+func TestImportScenarios(t *testing.T) {
+	scenarios := []e2eScenario{
+		goldenPathScenario(),
+	}
+
+	for _, sc := range scenarios {
+		t.Run(sc.name, func(t *testing.T) {
+			runScenario(t, sc)
+		})
+	}
+}
+
+// goldenPathScenario: one tournament, two schools, one flighted round with
+// a single decided ballot and a speaker award.
+func goldenPathScenario() e2eScenario {
+	return e2eScenario{
+		name:           "golden path",
+		tournamentID:   99001,
+		tournamentDate: "2026-08-01",
+		tournamentName: "Fixture Debate Invitational",
+		fixturePath:    "testdata/e2e/fixture_tournament.json",
+
+		wantPairings: TournamentPairings{
+			Name:       "Fixture Debate Invitational",
+			UpdateTime: "2026-08-01 1:05PM",
+			EventPairings: []EventPairing{
+				{
+					Name:      "Public Forum",
+					Number:    1,
+					Flighted:  false,
+					StartTime: "4:00AM",
+					Pairings: []Pairing{
+						{
+							SectionId: 1,
+							Flight:    1,
+							Room:      ptr("Room 101"),
+							AffEntry:  &Entry{Id: 10, Name: "AA1"},
+							AffResult: ptr(WIN),
+							NegEntry:  &Entry{Id: 20, Name: "BB1"},
+							NegResult: ptr(LOSS),
+							Judges: []Judge{
+								{Id: 1, PersonId: 501, Name: "Jane Judge", Started: true},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		wantSchoolsStatus: TournamentSchoolsStatus{
+			Name:       "Fixture Debate Invitational",
+			UpdateTime: "2026-08-01 1:05PM",
+			SchoolsStatus: []SchoolStatus{
+				{Id: 1, Name: "Alpha High", CheckedIn: true},
+				{Id: 2, Name: "Beta High", CheckedIn: false},
+			},
+		},
+
+		wantSummary: Summary{TournamentCount: 1, RoundCount: 1},
+
+		wantPairingsHTMLContains: []string{"AA1", "BB1", "Room 101", "Jane Judge", "Public Forum Round #1"},
+		wantStatusHTMLContains:   []string{"Alpha High", "Beta High"},
+	}
+}
+
+// runScenario drives the real, unmodified NewServer handler through the
+// whole workflow - import a tournament from a fake Tabroom server built
+// from the scenario's fixture, then read it back via every read endpoint -
+// and checks both the JSON API responses and what actually landed in the
+// published GCS bucket against the scenario's expected values.
+func runScenario(t *testing.T, sc e2eScenario) {
+	t.Helper()
 	resetDB(t)
 	ctx := context.Background()
 
-	fixture, err := os.ReadFile("testdata/e2e/fixture_tournament.json")
+	fixture, err := os.ReadFile(sc.fixturePath)
 	if err != nil {
-		t.Fatalf("read fixture: %v", err)
+		t.Fatalf("read fixture %s: %v", sc.fixturePath, err)
 	}
 	tabroomServer := newFakeTabroomServer(fakeTabroomTournament{
-		id:       99001,
-		date:     "2026-08-01",
-		name:     "Fixture Debate Invitational",
+		id:       sc.tournamentID,
+		date:     sc.tournamentDate,
+		name:     sc.tournamentName,
 		dataJSON: fixture,
 	})
 	defer tabroomServer.Close()
@@ -48,96 +136,19 @@ func TestImportGoldenPath(t *testing.T) {
 	appServer := httptest.NewServer(handler)
 	defer appServer.Close()
 
-	postImport(t, appServer.URL+"/tournaments/99001/import")
+	postImport(t, fmt.Sprintf("%s/tournaments/%d/import", appServer.URL, sc.tournamentID))
 
-	pairings := TournamentPairings{}
-	getJSON(t, appServer.URL+"/tournaments/99001/pairings/latest", &pairings)
-	assertPairings(t, pairings)
+	var pairings TournamentPairings
+	getJSON(t, fmt.Sprintf("%s/tournaments/%d/pairings/latest", appServer.URL, sc.tournamentID), &pairings)
+	assertDeepEqual(t, "pairings", sc.wantPairings, pairings)
 
-	status := TournamentSchoolsStatus{}
-	getJSON(t, appServer.URL+"/tournaments/99001/schools/status", &status)
-	assertSchoolsStatus(t, status)
+	var status TournamentSchoolsStatus
+	getJSON(t, fmt.Sprintf("%s/tournaments/%d/schools/status", appServer.URL, sc.tournamentID), &status)
+	assertDeepEqual(t, "schools status", sc.wantSchoolsStatus, status)
 
-	summary := Summary{}
+	var summary Summary
 	getJSON(t, appServer.URL+"/summary", &summary)
-	if summary.TournamentCount != 1 {
-		t.Errorf("summary.TournamentCount = %d, want 1", summary.TournamentCount)
-	}
-	if summary.RoundCount != 1 {
-		t.Errorf("summary.RoundCount = %d, want 1", summary.RoundCount)
-	}
-
-	assertPublishedPages(t, ctx)
-}
-
-func assertPairings(t *testing.T, pairings TournamentPairings) {
-	t.Helper()
-
-	if pairings.Name != "Fixture Debate Invitational" {
-		t.Errorf("pairings.Name = %q", pairings.Name)
-	}
-	if pairings.UpdateTime != "2026-08-01 1:05PM" {
-		t.Errorf("pairings.UpdateTime = %q, want %q", pairings.UpdateTime, "2026-08-01 1:05PM")
-	}
-	if len(pairings.EventPairings) != 1 {
-		t.Fatalf("got %d event pairings, want 1: %+v", len(pairings.EventPairings), pairings.EventPairings)
-	}
-
-	event := pairings.EventPairings[0]
-	if event.Name != "Public Forum" {
-		t.Errorf("event.Name = %q, want %q", event.Name, "Public Forum")
-	}
-	if event.Number != 1 {
-		t.Errorf("event.Number = %d, want 1", event.Number)
-	}
-	if event.Flighted {
-		t.Errorf("event.Flighted = true, want false (single flight)")
-	}
-	if event.StartTime != "4:00AM" {
-		t.Errorf("event.StartTime = %q, want %q", event.StartTime, "4:00AM")
-	}
-	if len(event.Pairings) != 1 {
-		t.Fatalf("got %d pairings, want 1: %+v", len(event.Pairings), event.Pairings)
-	}
-
-	p := event.Pairings[0]
-	if p.Room == nil || *p.Room != "Room 101" {
-		t.Errorf("p.Room = %v, want %q", p.Room, "Room 101")
-	}
-	if p.AffEntry == nil || p.AffEntry.Name != "AA1" {
-		t.Errorf("p.AffEntry = %+v, want code AA1", p.AffEntry)
-	}
-	if p.NegEntry == nil || p.NegEntry.Name != "BB1" {
-		t.Errorf("p.NegEntry = %+v, want code BB1", p.NegEntry)
-	}
-	if p.AffResult == nil || *p.AffResult != WIN {
-		t.Errorf("p.AffResult = %v, want WIN", p.AffResult)
-	}
-	if p.NegResult == nil || *p.NegResult != LOSS {
-		t.Errorf("p.NegResult = %v, want LOSS", p.NegResult)
-	}
-	if len(p.Judges) != 1 || p.Judges[0].Name != "Jane Judge" || !p.Judges[0].Started {
-		t.Errorf("p.Judges = %+v, want one started judge named Jane Judge", p.Judges)
-	}
-}
-
-func assertSchoolsStatus(t *testing.T, status TournamentSchoolsStatus) {
-	t.Helper()
-
-	if len(status.SchoolsStatus) != 2 {
-		t.Fatalf("got %d schools, want 2: %+v", len(status.SchoolsStatus), status.SchoolsStatus)
-	}
-	// GetSchoolStatus orders by school_name, so Alpha sorts before Beta.
-	if status.SchoolsStatus[0].Name != "Alpha High" || !status.SchoolsStatus[0].CheckedIn {
-		t.Errorf("SchoolsStatus[0] = %+v, want Alpha High checked in", status.SchoolsStatus[0])
-	}
-	if status.SchoolsStatus[1].Name != "Beta High" || status.SchoolsStatus[1].CheckedIn {
-		t.Errorf("SchoolsStatus[1] = %+v, want Beta High not checked in", status.SchoolsStatus[1])
-	}
-}
-
-func assertPublishedPages(t *testing.T, ctx context.Context) {
-	t.Helper()
+	assertDeepEqual(t, "summary", sc.wantSummary, summary)
 
 	storageClient, err := getStorageClient(ctx)
 	if err != nil {
@@ -146,16 +157,33 @@ func assertPublishedPages(t *testing.T, ctx context.Context) {
 	defer storageClient.Close()
 
 	pairingsHTML := readGcsBlob(t, ctx, storageClient, "pairings.html")
-	for _, want := range []string{"AA1", "BB1", "Room 101", "Jane Judge", "Public Forum Round #1"} {
+	for _, want := range sc.wantPairingsHTMLContains {
 		if !strings.Contains(pairingsHTML, want) {
 			t.Errorf("pairings.html missing %q", want)
 		}
 	}
 
 	statusHTML := readGcsBlob(t, ctx, storageClient, "status.html")
-	for _, want := range []string{"Alpha High", "Beta High"} {
+	for _, want := range sc.wantStatusHTMLContains {
 		if !strings.Contains(statusHTML, want) {
 			t.Errorf("status.html missing %q", want)
 		}
 	}
+}
+
+// assertDeepEqual compares got against want and, on mismatch, prints both
+// as indented JSON so it's clear which field(s) differ - one comparison
+// function shared by every scenario instead of a bespoke assert function
+// per test.
+func assertDeepEqual(t *testing.T, label string, want, got any) {
+	t.Helper()
+	if !reflect.DeepEqual(want, got) {
+		wantJSON, _ := json.MarshalIndent(want, "", "  ")
+		gotJSON, _ := json.MarshalIndent(got, "", "  ")
+		t.Errorf("%s mismatch:\n--- want ---\n%s\n--- got ---\n%s", label, wantJSON, gotJSON)
+	}
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }
