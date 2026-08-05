@@ -5,14 +5,15 @@ package main
 import "testing"
 
 func TestImportScenarios(t *testing.T) {
-	scenarios := []e2eScenario{
-		goldenPathScenario(),
-		multiEventMultiRoundScenario(),
+	sequences := []e2eScenarioSequence{
+		solo(goldenPathScenario()),
+		solo(multiEventMultiRoundScenario()),
+		multipleTournamentsScenario(),
 	}
 
-	for _, sc := range scenarios {
-		t.Run(sc.name, func(t *testing.T) {
-			runScenario(t, sc)
+	for _, seq := range sequences {
+		t.Run(seq.name, func(t *testing.T) {
+			runScenario(t, seq.scenarios...)
 		})
 	}
 }

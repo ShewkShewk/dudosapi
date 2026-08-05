@@ -94,13 +94,24 @@ To add a new scenario:
    shape) returning an `e2eScenario` with the fixture path, tournament
    id/date/name, and the exact expected `TournamentPairings`,
    `TournamentSchoolsStatus`, and `Summary` values.
-3. Append the new builder's result to the `scenarios` slice in
+3. Append `solo(yourNewScenario())` to the `sequences` slice in
    `TestImportScenarios` (`e2e_test.go`).
 
-Write no new assertion code — `runScenario` (`e2e_driver_test.go`) and its
-`assertDeepEqual` helper already run every scenario end to end (import →
-read back pairings/status/summary JSON → check published GCS HTML); only the
-expected values change per scenario.
+`runScenario` (`e2e_driver_test.go`) takes `...e2eScenario` and imports each
+one, in order, against one shared database, asserting pairings/status/HTML
+right after its own import — a plain single-tournament scenario is just a
+one-element sequence via the `solo` helper. To test cross-tournament
+behavior (a later import overwriting the previously published pages,
+`Summary` counting globally rather than per-tournament), add an
+`e2eScenarioSequence` builder that composes more than one `e2eScenario` — see
+`multipleTournamentsScenario` for the pattern. Only the *last* scenario in a
+sequence has its `wantSummary` checked, since summary counts reflect
+everything imported so far, not just that one scenario's own tournament.
+
+Write no new assertion code — `runScenario` and its `assertDeepEqual` helper
+already run every scenario end to end (import → read back pairings/status/
+summary JSON → check published GCS HTML); only the expected values change per
+scenario or sequence.
 
 Two correctness traps in expected values, both easy to get wrong because
 `assertDeepEqual` does a full `reflect.DeepEqual`, not a spot-check:

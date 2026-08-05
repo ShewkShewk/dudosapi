@@ -22,6 +22,24 @@ type e2eScenario struct {
 	wantStatusHTMLContains   []string
 }
 
+// e2eScenarioSequence names an ordered group of e2eScenarios that get
+// imported, in order, against one shared database within a single subtest -
+// see runScenario. A sequence of one is an ordinary single-tournament
+// scenario; a longer sequence exercises cross-tournament behavior, such as
+// a later import overwriting the previously published pairings.html/
+// status.html, or Summary's counts being global rather than scoped to one
+// tournament.
+type e2eScenarioSequence struct {
+	name      string
+	scenarios []e2eScenario
+}
+
+// solo wraps a single scenario as a one-element sequence, reusing the
+// scenario's own name as the subtest name.
+func solo(sc e2eScenario) e2eScenarioSequence {
+	return e2eScenarioSequence{name: sc.name, scenarios: []e2eScenario{sc}}
+}
+
 // goldenPathScenario: one tournament, two schools, one flighted round with
 // a single decided ballot and a speaker award.
 func goldenPathScenario() e2eScenario {
@@ -105,15 +123,15 @@ func multiEventMultiRoundScenario() e2eScenario {
 					StartTime: "5:45AM",
 					Pairings: []Pairing{
 						{
-							SectionId: 8,
+							SectionId: 108,
 							Flight:    1,
 							Room:      ptr("Room 102"),
-							AffEntry:  &Entry{Id: 11, Name: "AA2"},
+							AffEntry:  &Entry{Id: 111, Name: "AA2"},
 							AffResult: ptr(LOSS),
-							NegEntry:  &Entry{Id: 21, Name: "BB2"},
+							NegEntry:  &Entry{Id: 121, Name: "BB2"},
 							NegResult: ptr(WIN),
 							Judges: []Judge{
-								{Id: 1, PersonId: 501, Name: "Jane Judge", Started: true},
+								{Id: 101, PersonId: 501, Name: "Jane Judge", Started: true},
 							},
 						},
 					},
@@ -125,15 +143,15 @@ func multiEventMultiRoundScenario() e2eScenario {
 					StartTime: "5:30AM",
 					Pairings: []Pairing{
 						{
-							SectionId: 4,
+							SectionId: 104,
 							Flight:    1,
 							Room:      ptr("Room 101"),
-							AffEntry:  &Entry{Id: 10, Name: "AA1"},
+							AffEntry:  &Entry{Id: 110, Name: "AA1"},
 							AffResult: ptr(WIN),
-							NegEntry:  &Entry{Id: 20, Name: "BB1"},
+							NegEntry:  &Entry{Id: 120, Name: "BB1"},
 							NegResult: ptr(LOSS),
 							Judges: []Judge{
-								{Id: 1, PersonId: 501, Name: "Jane Judge", Started: true},
+								{Id: 101, PersonId: 501, Name: "Jane Judge", Started: true},
 							},
 						},
 					},
@@ -160,5 +178,23 @@ func multiEventMultiRoundScenario() e2eScenario {
 			`<td style="color: green; font-weight: bold;">Alpha High</td>`,
 			`<td style="color: red; font-weight: bold;">Beta High</td>`,
 		},
+	}
+}
+
+// multipleTournamentsScenario imports the golden path tournament followed by
+// the multi-event tournament against one shared database. Each scenario's
+// pairings/schools-status/HTML are still asserted immediately after its own
+// import, which also proves the second import overwrites the first's
+// published pairings.html/status.html. wantSummary on the second scenario is
+// overridden to the totals across both tournaments, since RoundCount and
+// TournamentCount aggregate globally rather than being scoped to one
+// tournament - runScenario only checks the last scenario's wantSummary when
+// a sequence has more than one entry.
+func multipleTournamentsScenario() e2eScenarioSequence {
+	second := multiEventMultiRoundScenario()
+	second.wantSummary = Summary{TournamentCount: 2, RoundCount: 9}
+	return e2eScenarioSequence{
+		name:      "multiple tournaments imported in sequence",
+		scenarios: []e2eScenario{goldenPathScenario(), second},
 	}
 }
