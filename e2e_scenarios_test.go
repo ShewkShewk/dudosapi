@@ -71,7 +71,10 @@ func goldenPathScenario() e2eScenario {
 		wantSummary: Summary{TournamentCount: 1, RoundCount: 1},
 
 		wantPairingsHTMLContains: []string{"AA1", "BB1", "Room 101", "Jane Judge", "Public Forum Round #1"},
-		wantStatusHTMLContains:   []string{"Alpha High", "Beta High"},
+		wantStatusHTMLContains: []string{
+			`<td style="color: green; font-weight: bold;">Alpha High</td>`,
+			`<td style="color: red; font-weight: bold;">Beta High</td>`,
+		},
 	}
 }
 
@@ -153,6 +156,9 @@ func multiEventMultiRoundScenario() e2eScenario {
 			"AA1", "BB1", "AA2", "BB2", "Room 101", "Room 102", "Jane Judge",
 			"Public Forum Round #4", "Lincoln Douglas Round #4",
 		},
-		wantStatusHTMLContains: []string{"Alpha High", "Beta High"},
+		wantStatusHTMLContains: []string{
+			`<td style="color: green; font-weight: bold;">Alpha High</td>`,
+			`<td style="color: red; font-weight: bold;">Beta High</td>`,
+		},
 	}
 }
