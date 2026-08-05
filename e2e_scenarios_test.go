@@ -74,3 +74,85 @@ func goldenPathScenario() e2eScenario {
 		wantStatusHTMLContains:   []string{"Alpha High", "Beta High"},
 	}
 }
+
+// multiEventMultiRoundScenario: one tournament, two schools, two event types
+// (Public Forum, Lincoln Douglas) each with four rounds. All four rounds per
+// event are published, but /pairings/latest only surfaces the highest
+// published round number per event - so the expected pairings reflect round
+// #4 even though rounds #1-#3 exist in the fixture. Summary.RoundCount,
+// unlike the pairings endpoint, counts every started section across all
+// rounds and both events (4 rounds * 2 events = 8), which is why it doesn't
+// match either event's round Number.
+func multiEventMultiRoundScenario() e2eScenario {
+	return e2eScenario{
+		name:           "multiple event types with four rounds each",
+		tournamentID:   99002,
+		tournamentDate: "2026-08-01",
+		tournamentName: "Multi-Event Multi-Round Invitational",
+		fixturePath:    "testdata/e2e/fixture_multi_event_multi_round.json",
+
+		wantPairings: TournamentPairings{
+			Name:       "Multi-Event Multi-Round Invitational",
+			UpdateTime: "2026-08-01 1:05PM",
+			EventPairings: []EventPairing{
+				{
+					Name:      "Lincoln Douglas",
+					Number:    4,
+					Flighted:  false,
+					StartTime: "5:45AM",
+					Pairings: []Pairing{
+						{
+							SectionId: 8,
+							Flight:    1,
+							Room:      ptr("Room 102"),
+							AffEntry:  &Entry{Id: 11, Name: "AA2"},
+							AffResult: ptr(LOSS),
+							NegEntry:  &Entry{Id: 21, Name: "BB2"},
+							NegResult: ptr(WIN),
+							Judges: []Judge{
+								{Id: 1, PersonId: 501, Name: "Jane Judge", Started: true},
+							},
+						},
+					},
+				},
+				{
+					Name:      "Public Forum",
+					Number:    4,
+					Flighted:  false,
+					StartTime: "5:30AM",
+					Pairings: []Pairing{
+						{
+							SectionId: 4,
+							Flight:    1,
+							Room:      ptr("Room 101"),
+							AffEntry:  &Entry{Id: 10, Name: "AA1"},
+							AffResult: ptr(WIN),
+							NegEntry:  &Entry{Id: 20, Name: "BB1"},
+							NegResult: ptr(LOSS),
+							Judges: []Judge{
+								{Id: 1, PersonId: 501, Name: "Jane Judge", Started: true},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		wantSchoolsStatus: TournamentSchoolsStatus{
+			Name:       "Multi-Event Multi-Round Invitational",
+			UpdateTime: "2026-08-01 1:05PM",
+			SchoolsStatus: []SchoolStatus{
+				{Id: 1, Name: "Alpha High", CheckedIn: true},
+				{Id: 2, Name: "Beta High", CheckedIn: false},
+			},
+		},
+
+		wantSummary: Summary{TournamentCount: 1, RoundCount: 8},
+
+		wantPairingsHTMLContains: []string{
+			"AA1", "BB1", "AA2", "BB2", "Room 101", "Room 102", "Jane Judge",
+			"Public Forum Round #4", "Lincoln Douglas Round #4",
+		},
+		wantStatusHTMLContains: []string{"Alpha High", "Beta High"},
+	}
+}

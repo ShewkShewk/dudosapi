@@ -7,6 +7,7 @@ import "testing"
 func TestImportScenarios(t *testing.T) {
 	scenarios := []e2eScenario{
 		goldenPathScenario(),
+		multiEventMultiRoundScenario(),
 	}
 
 	for _, sc := range scenarios {
