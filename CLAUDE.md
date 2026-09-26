@@ -67,6 +67,36 @@ Object names are fixed — `pairings.html` and `status.html` — regardless of
 tournament id, so only one tournament's output is live at a time. Importing a
 second tournament overwrites the first one's published pages.
 
+## Keep the OpenAPI spec in sync
+
+[`docs/openapi.yaml`](./docs/openapi.yaml) (OpenAPI 3.1) describes the HTTP
+interface. **Update it in the same change as any change to the interface:**
+
+- a route added, removed, or renamed in `NewServer` (`routes.go`);
+- a status code or error body a handler returns — note which `500`s carry a
+  `text/plain` message and which are empty, and that an unknown tournament id is
+  currently a `500`, not a `404`;
+- a JSON field in `domain.go`: its name/tag, its type, or whether it can be
+  `null` (a nil slice or pointer encodes as `null`; a slice built with `make` is
+  always an array);
+- the format of a formatted string (`updateTime`, `startTime`, `date`), or the
+  ordering/counting rules a description states.
+
+Describe what the code actually does, not what it ideally should: the spec is
+checked against real responses, so an aspirational spec is a wrong one.
+
+Validate after editing:
+
+```sh
+npx --yes @redocly/cli@2 lint docs/openapi.yaml
+```
+
+It must report the description as valid. Four warnings are expected and
+deliberate — no 4xx on `/tournaments` and `/summary` (they have none), a
+localhost-only `servers` entry (the deployed URL stays out of this public repo),
+and no license. Do not "fix" them by inventing responses or recording the
+service URL.
+
 ## Adding end-to-end tests
 
 The e2e suite (`e2e_*_test.go`, root package, `//go:build e2e`) drives the
