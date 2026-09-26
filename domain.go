@@ -71,3 +71,23 @@ type TournamentSchoolsStatus struct {
 	UpdateTime    string         `json:"updateTime"`
 	SchoolsStatus []SchoolStatus `json:"schoolsStatus"`
 }
+
+type SchoolEntryCount struct {
+	Id           int32  `json:"id"`
+	Name         string `json:"name"`
+	EntryCount   int64  `json:"entryCount"`
+	StudentCount int64  `json:"studentCount"`
+}
+
+type EventSchoolCounts struct {
+	Id           int32              `json:"id"`
+	Name         string             `json:"name"`
+	EntryCount   int64              `json:"entryCount"`
+	StudentCount int64              `json:"studentCount"`
+	Schools      []SchoolEntryCount `json:"schools"`
+}
+
+type TournamentEventSchoolCounts struct {
+	Name   string              `json:"name"`
+	Events []EventSchoolCounts `json:"events"`
+}

@@ -9,6 +9,7 @@ func TestImportScenarios(t *testing.T) {
 		solo(goldenPathScenario()),
 		solo(multiEventMultiRoundScenario()),
 		multipleTournamentsScenario(),
+		solo(entryCountsScenario()),
 	}
 
 	for _, seq := range sequences {

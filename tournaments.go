@@ -95,6 +95,41 @@ func getTournamentSchoolsStatus(ctx context.Context, queries *sqlc.Queries, tour
 	}, nil
 }
 
+func getTournamentEventSchoolCounts(ctx context.Context, queries *sqlc.Queries, tournId int32) (*TournamentEventSchoolCounts, error) {
+	name, _, err := getTournamentMetadata(ctx, queries, tournId)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := queries.GetEventSchoolCounts(ctx, pgtype.Int4{Int32: tournId, Valid: true})
+	if err != nil {
+		log.Printf("getTournamentEventSchoolCounts: unable to get event school counts for %v %v", tournId, err)
+		return nil, err
+	}
+	// Rows arrive ordered by event, so each event's schools are contiguous.
+	events := make([]EventSchoolCounts, 0)
+	for _, row := range rows {
+		if len(events) == 0 || events[len(events)-1].Id != row.EventID {
+			events = append(events, EventSchoolCounts{
+				Id:           row.EventID,
+				Name:         row.EventName.String,
+				EntryCount:   row.EventEntryCount,
+				StudentCount: row.EventStudentCount,
+			})
+		}
+		event := &events[len(events)-1]
+		event.Schools = append(event.Schools, SchoolEntryCount{
+			Id:           row.SchoolID,
+			Name:         row.SchoolName.String,
+			EntryCount:   row.SchoolEntryCount,
+			StudentCount: row.SchoolStudentCount,
+		})
+	}
+	return &TournamentEventSchoolCounts{
+		Name:   name,
+		Events: events,
+	}, nil
+}
+
 func getTournamentMetadata(ctx context.Context, queries *sqlc.Queries, tournId int32) (string, string, error) {
 	tournamentData, err := queries.GetTournament(ctx, tournId)
 	if err != nil {

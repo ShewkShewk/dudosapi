@@ -14,9 +14,10 @@ type e2eScenario struct {
 	tournamentName string
 	fixturePath    string
 
-	wantPairings      TournamentPairings
-	wantSchoolsStatus TournamentSchoolsStatus
-	wantSummary       Summary
+	wantPairings          TournamentPairings
+	wantSchoolsStatus     TournamentSchoolsStatus
+	wantEventSchoolCounts TournamentEventSchoolCounts
+	wantSummary           Summary
 
 	wantPairingsHTMLContains []string
 	wantStatusHTMLContains   []string
@@ -83,6 +84,19 @@ func goldenPathScenario() e2eScenario {
 			SchoolsStatus: []SchoolStatus{
 				{Id: 1, Name: "Alpha High", CheckedIn: true},
 				{Id: 2, Name: "Beta High", CheckedIn: false},
+			},
+		},
+
+		wantEventSchoolCounts: TournamentEventSchoolCounts{
+			Name: "Fixture Debate Invitational",
+			Events: []EventSchoolCounts{
+				{
+					Id: 1, Name: "Public Forum", EntryCount: 2, StudentCount: 2,
+					Schools: []SchoolEntryCount{
+						{Id: 1, Name: "Alpha High", EntryCount: 1, StudentCount: 1},
+						{Id: 2, Name: "Beta High", EntryCount: 1, StudentCount: 1},
+					},
+				},
 			},
 		},
 
@@ -168,6 +182,26 @@ func multiEventMultiRoundScenario() e2eScenario {
 			},
 		},
 
+		wantEventSchoolCounts: TournamentEventSchoolCounts{
+			Name: "Multi-Event Multi-Round Invitational",
+			Events: []EventSchoolCounts{
+				{
+					Id: 102, Name: "Lincoln Douglas", EntryCount: 2, StudentCount: 2,
+					Schools: []SchoolEntryCount{
+						{Id: 1, Name: "Alpha High", EntryCount: 1, StudentCount: 1},
+						{Id: 2, Name: "Beta High", EntryCount: 1, StudentCount: 1},
+					},
+				},
+				{
+					Id: 101, Name: "Public Forum", EntryCount: 2, StudentCount: 2,
+					Schools: []SchoolEntryCount{
+						{Id: 1, Name: "Alpha High", EntryCount: 1, StudentCount: 1},
+						{Id: 2, Name: "Beta High", EntryCount: 1, StudentCount: 1},
+					},
+				},
+			},
+		},
+
 		wantSummary: Summary{TournamentCount: 1, RoundCount: 8},
 
 		wantPairingsHTMLContains: []string{
@@ -196,5 +230,66 @@ func multipleTournamentsScenario() e2eScenarioSequence {
 	return e2eScenarioSequence{
 		name:      "multiple tournaments imported in sequence",
 		scenarios: []e2eScenario{goldenPathScenario(), second},
+	}
+}
+
+// entryCountsScenario: one tournament with no rounds, built to pin down how
+// /events/schools counts entries. Policy has a two-student entry (310), a
+// hybrid entry whose students come from both schools (311), and an inactive
+// entry (320); World Schools has one two-student entry (321); Original
+// Oratory is a speech event, which the import skips entirely (330).
+//
+//   - 320 is inactive, so Beta High's Policy row shows only the hybrid entry.
+//   - 311 counts once for each school, so the per-school Policy entry counts
+//     (2 + 1) sum to more than the event's distinct-entry total (2).
+//   - 330's event isn't imported, so it appears nowhere.
+func entryCountsScenario() e2eScenario {
+	return e2eScenario{
+		name:           "entry counts by event and school",
+		tournamentID:   99003,
+		tournamentDate: "2026-08-01",
+		tournamentName: "Entry Count Invitational",
+		fixturePath:    "testdata/e2e/fixture_entry_counts.json",
+
+		wantPairings: TournamentPairings{
+			Name:          "Entry Count Invitational",
+			UpdateTime:    "2026-08-01 1:05PM",
+			EventPairings: []EventPairing{},
+		},
+
+		wantSchoolsStatus: TournamentSchoolsStatus{
+			Name:       "Entry Count Invitational",
+			UpdateTime: "2026-08-01 1:05PM",
+			SchoolsStatus: []SchoolStatus{
+				{Id: 1, Name: "Alpha High", CheckedIn: true},
+				{Id: 2, Name: "Beta High", CheckedIn: false},
+			},
+		},
+
+		wantEventSchoolCounts: TournamentEventSchoolCounts{
+			Name: "Entry Count Invitational",
+			Events: []EventSchoolCounts{
+				{
+					Id: 301, Name: "Policy", EntryCount: 2, StudentCount: 4,
+					Schools: []SchoolEntryCount{
+						{Id: 1, Name: "Alpha High", EntryCount: 2, StudentCount: 3},
+						{Id: 2, Name: "Beta High", EntryCount: 1, StudentCount: 1},
+					},
+				},
+				{
+					Id: 302, Name: "World Schools", EntryCount: 1, StudentCount: 2,
+					Schools: []SchoolEntryCount{
+						{Id: 2, Name: "Beta High", EntryCount: 1, StudentCount: 2},
+					},
+				},
+			},
+		},
+
+		wantSummary: Summary{TournamentCount: 1, RoundCount: 0},
+
+		wantStatusHTMLContains: []string{
+			`<td style="color: green; font-weight: bold;">Alpha High</td>`,
+			`<td style="color: red; font-weight: bold;">Beta High</td>`,
+		},
 	}
 }

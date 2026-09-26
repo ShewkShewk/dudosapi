@@ -93,7 +93,8 @@ To add a new scenario:
 2. Add a builder in `e2e_scenarios_test.go` (copy `goldenPathScenario`'s
    shape) returning an `e2eScenario` with the fixture path, tournament
    id/date/name, and the exact expected `TournamentPairings`,
-   `TournamentSchoolsStatus`, and `Summary` values.
+   `TournamentSchoolsStatus`, `TournamentEventSchoolCounts`, and `Summary`
+   values.
 3. Append `solo(yourNewScenario())` to the `sequences` slice in
    `TestImportScenarios` (`e2e_test.go`).
 
@@ -110,7 +111,7 @@ everything imported so far, not just that one scenario's own tournament.
 
 Write no new assertion code — `runScenario` and its `assertDeepEqual` helper
 already run every scenario end to end (import → read back pairings/status/
-summary JSON → check published GCS HTML); only the expected values change per
+event-school-counts/summary JSON → check published GCS HTML); only the expected values change per
 scenario or sequence.
 
 Two correctness traps in expected values, both easy to get wrong because

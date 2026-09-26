@@ -35,6 +35,81 @@ func (q *Queries) GetCompletedRoundCount(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const getEventSchoolCounts = `-- name: GetEventSchoolCounts :many
+WITH active_entry_students AS (SELECT en.id       AS entry_id,
+                                      en.event_id AS event_id,
+                                      st.id       AS student_id,
+                                      st.school_id AS school_id
+                               FROM entries en
+                                        JOIN student_entries sen ON sen.entry_id = en.id
+                                        JOIN students st ON st.id = sen.student_id
+                               WHERE en.tournament_id = $1
+                                 AND en.active IS TRUE),
+     event_totals AS (SELECT event_id,
+                             COUNT(DISTINCT entry_id)   AS entry_count,
+                             COUNT(DISTINCT student_id) AS student_count
+                      FROM active_entry_students
+                      GROUP BY event_id)
+SELECT ev.id                        AS event_id,
+       ev.name                      AS event_name,
+       et.entry_count               AS event_entry_count,
+       et.student_count             AS event_student_count,
+       sc.id                        AS school_id,
+       sc.name                      AS school_name,
+       COUNT(DISTINCT aes.entry_id)   AS school_entry_count,
+       COUNT(DISTINCT aes.student_id) AS school_student_count
+FROM active_entry_students aes
+         JOIN events ev ON ev.id = aes.event_id
+         JOIN event_totals et ON et.event_id = aes.event_id
+         JOIN schools sc ON sc.id = aes.school_id
+GROUP BY ev.id, ev.name, et.entry_count, et.student_count, sc.id, sc.name
+ORDER BY ev.name, ev.id, sc.name, sc.id
+`
+
+type GetEventSchoolCountsRow struct {
+	EventID            int32
+	EventName          pgtype.Text
+	EventEntryCount    int64
+	EventStudentCount  int64
+	SchoolID           int32
+	SchoolName         pgtype.Text
+	SchoolEntryCount   int64
+	SchoolStudentCount int64
+}
+
+// One row per (event, school) over ACTIVE entries only. An entry with students
+// from several schools counts once for each of those schools, while the event
+// totals count distinct entries, so they can be less than the sum of the
+// per-school counts.
+func (q *Queries) GetEventSchoolCounts(ctx context.Context, tournamentID pgtype.Int4) ([]GetEventSchoolCountsRow, error) {
+	rows, err := q.db.Query(ctx, getEventSchoolCounts, tournamentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEventSchoolCountsRow
+	for rows.Next() {
+		var i GetEventSchoolCountsRow
+		if err := rows.Scan(
+			&i.EventID,
+			&i.EventName,
+			&i.EventEntryCount,
+			&i.EventStudentCount,
+			&i.SchoolID,
+			&i.SchoolName,
+			&i.SchoolEntryCount,
+			&i.SchoolStudentCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLatestPublishedRoundsPerEvent = `-- name: GetLatestPublishedRoundsPerEvent :many
 SELECT DISTINCT ON (events.name) rounds.event_id   AS event_id,
                                  events.name       AS event_name,
