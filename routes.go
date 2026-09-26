@@ -152,16 +152,7 @@ func handleImportTournament(tb *tbapi.TabroomApi, conn *pgxpool.Pool, queries *s
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = queries.LoadTournament(r.Context(), sqlc.LoadTournamentParams{
-			ID:  tournId,
-			Raw: raw,
-		})
-		if err != nil {
-			log.Printf("handleImportTournaments: unable to save raw tournament to db: %v %v", tournId, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		err = importTournament(r.Context(), conn, queries, tournId, tournament)
+		err = importTournament(r.Context(), conn, queries, tournId, tournament, raw)
 		if err != nil {
 			log.Printf("handleImportTournaments: unable to import tournament to db: %v %v", tournId, err)
 			w.WriteHeader(http.StatusInternalServerError)

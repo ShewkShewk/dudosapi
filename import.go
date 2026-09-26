@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData) error {
+func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData, raw []byte) error {
 	tx, err := conn.Begin(ctx)
 	if err != nil {
 		log.Printf("importTournament: unable to open transaction for tournament %v %v", tourn.Name, err)
@@ -22,6 +22,22 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 	}
 	defer tx.Rollback(ctx)
 	qtx := queries.WithTx(tx)
+	// Rebuild the tournament from scratch so anything removed in Tabroom (entries, student
+	// swaps, rounds) is removed here too. The delete cascades to every tournament-owned
+	// table, and since it shares the transaction a failed import leaves the old data intact.
+	err = qtx.DeleteTournament(ctx, tournId)
+	if err != nil {
+		log.Printf("importTournament: unable to delete existing data for %v %v", tourn.Name, err)
+		return err
+	}
+	err = qtx.LoadTournament(ctx, sqlc.LoadTournamentParams{
+		ID:  tournId,
+		Raw: raw,
+	})
+	if err != nil {
+		log.Printf("importTournament: unable to save raw tournament for %v %v", tourn.Name, err)
+		return err
+	}
 	err = importSitesAndRooms(ctx, qtx, tourn)
 	if err != nil {
 		log.Printf("importTournament: unable to import rounds for %v %v", tourn.Name, err)

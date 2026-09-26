@@ -112,7 +112,7 @@ CREATE TABLE speaker_awards
 
 CREATE TABLE school_entries
 (
-    tournament_id SERIAL REFERENCES tournaments (id),
+    tournament_id SERIAL REFERENCES tournaments (id) ON DELETE CASCADE,
     school_id     SERIAL REFERENCES schools (id),
     on_site       BOOLEAN,
     PRIMARY KEY (tournament_id, school_id)
