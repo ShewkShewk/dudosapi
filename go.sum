@@ -38,6 +38,8 @@ github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERo
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/ShewkShewk/tbapi v0.0.0-20260421022606-c37c63ed4e35 h1:zGQcUDs7KkYtgLiVoF3ZNo5oduLkKRtPvcL4Rm3y0y0=
 github.com/ShewkShewk/tbapi v0.0.0-20260421022606-c37c63ed4e35/go.mod h1:ve0iMuh5OegXVk6smhaSjKM0lnDPW7nendZM2esxzZY=
+github.com/ShewkShewk/tbapi v0.0.0-20260926122545-943f60dafed4 h1:OEjDR+1pmoojTTnemLXHcXsWN6hz7QQ6z6oBH9Kottk=
+github.com/ShewkShewk/tbapi v0.0.0-20260926122545-943f60dafed4/go.mod h1:ve0iMuh5OegXVk6smhaSjKM0lnDPW7nendZM2esxzZY=
 github.com/a-h/templ v0.3.1020 h1:ypAT/L5ySWEnZ6Zft/5yfoWXYYkhFNvEFOeeqecg4tw=
 github.com/a-h/templ v0.3.1020/go.mod h1:A2DlK61v+K+NRoGnhmYbNYVmtYHcFO5/AisMvBdDxTM=
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=

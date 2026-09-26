@@ -4,7 +4,7 @@ go 1.25.9
 
 require (
 	cloud.google.com/go/storage v1.63.0
-	github.com/ShewkShewk/tbapi v0.0.0-20260421022606-c37c63ed4e35
+	github.com/ShewkShewk/tbapi v0.0.0-20260926122545-943f60dafed4
 	github.com/a-h/templ v0.3.1020
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/jackc/pgx/v5 v5.9.2
