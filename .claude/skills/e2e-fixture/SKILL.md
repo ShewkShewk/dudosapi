@@ -50,9 +50,21 @@ in a commit, including in fixture JSON that never gets rendered anywhere.
   fine, but don't do it by default.
 - **Entry codes** (e.g. `AA1`) aren't PII themselves — regenerate them from
   the placeholder names if needed, matching the existing style.
+- **Judge ids/person ids, student ids, and school `chapter` ids** are real
+  Tabroom record identifiers tied to real people and schools — regenerate
+  these too rather than carrying the source file's numbers over, even though
+  they're not human-readable PII by themselves. Pick fresh placeholder
+  numbers (small sequential values are fine, e.g. `90001`, `90002`) and
+  rewrite every reference consistently: a judge's `id` appears again in each
+  ballot's `judge` field, a student's `id` appears again in their entry's
+  `students` list, and a school's `chapter` appears again in that school's
+  own `students[].chapter`. Entry ids, round ids, section ids, ballot ids,
+  and site/room ids aren't tied to a person or school, so those can stay as
+  in the source.
 - Skim the trimmed file yourself for anything that still looks like a real
-  name, email, or phone number before writing it — don't rely on having
-  caught every field on the first pass.
+  name, email, phone number, or an untouched source id in one of the fields
+  above before writing it — don't rely on having caught every field on the
+  first pass.
 
 ## 4. Pick a fixture path and tournament id
 
