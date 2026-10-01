@@ -88,6 +88,10 @@ func runScenario(t *testing.T, scenarios ...e2eScenario) {
 		getJSON(t, fmt.Sprintf("%s/tournaments/%d/events/schools", appServer.URL, sc.tournamentID), &eventSchoolCounts)
 		assertDeepEqual(t, "event school counts", sc.wantEventSchoolCounts, eventSchoolCounts)
 
+		var schools = make([]School, len(sc.wantSchools))
+		getJSON(t, fmt.Sprintf("%s/schools", appServer.URL), &schools)
+		assertDeepEqual(t, "schools", sc.wantSchools, schools)
+
 		pairingsHTML := readGcsBlob(t, ctx, storageClient, "pairings.html")
 		for _, want := range sc.wantPairingsHTMLContains {
 			if !strings.Contains(pairingsHTML, want) {

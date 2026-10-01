@@ -43,6 +43,7 @@ func NewServer(config *Config) (http.Handler, error) {
 	mux.Handle("DELETE /tournaments/{id}", handleDeleteTournament(queries))
 	mux.Handle("GET /tournaments/{id}/pairings/latest", handleGetLatestPairings(dbConn, queries))
 	mux.Handle("GET /summary", handleGetSummary(queries))
+	mux.Handle("GET /schools", handleGetSchools(queries))
 	return mux, nil
 }
 
@@ -63,6 +64,23 @@ func handleGetTournamentSchoolsStatus(queries *sqlc.Queries) http.HandlerFunc {
 		err = encode(w, r, http.StatusOK, result)
 		if err != nil {
 			log.Printf("handleGetTournamentSchoolsStatus error encoding result %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func handleGetSchools(queries *sqlc.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		result, err := getSchools(r.Context(), queries)
+		if err != nil {
+			log.Printf("handleGetSChools error when retrieving school status %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = encode(w, r, http.StatusOK, result)
+		if err != nil {
+			log.Printf("handleGetSchools error encoding result %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

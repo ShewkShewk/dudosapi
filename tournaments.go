@@ -166,6 +166,22 @@ func getSchoolsStatus(ctx context.Context, queries *sqlc.Queries, tournId int32)
 	return results, nil
 }
 
+func getSchools(ctx context.Context, queries *sqlc.Queries) ([]School, error) {
+	getSchoolsResult, err := queries.GetSchools(ctx)
+	if err != nil {
+		log.Printf("getSchools unable to get schools from DB %v", err)
+		return nil, err
+	}
+	results := make([]School, len(getSchoolsResult))
+	for i, result := range getSchoolsResult {
+		results[i] = School{
+			Id:   result.ID,
+			Name: result.Name.String,
+		}
+	}
+	return results, nil
+}
+
 func toPairing(row sqlc.GetPairingsWithBallotsRow) (*Pairing, error) {
 	var sectionId int
 	if row.SectionID.Valid {

@@ -18,6 +18,7 @@ type e2eScenario struct {
 	wantSchoolsStatus     TournamentSchoolsStatus
 	wantEventSchoolCounts TournamentEventSchoolCounts
 	wantSummary           Summary
+	wantSchools           []School
 
 	wantPairingsHTMLContains []string
 	wantStatusHTMLContains   []string
@@ -101,6 +102,17 @@ func goldenPathScenario() e2eScenario {
 		},
 
 		wantSummary: Summary{TournamentCount: 1, RoundCount: 1},
+
+		wantSchools: []School{
+			{
+				Id:   1,
+				Name: "Alpha High",
+			},
+			{
+				Id:   2,
+				Name: "Beta High",
+			},
+		},
 
 		wantPairingsHTMLContains: []string{"AA1", "BB1", "Room 101", "Jane Judge", "Public Forum Round #1"},
 		wantStatusHTMLContains: []string{
@@ -204,6 +216,17 @@ func multiEventMultiRoundScenario() e2eScenario {
 
 		wantSummary: Summary{TournamentCount: 1, RoundCount: 8},
 
+		wantSchools: []School{
+			{
+				Id:   1,
+				Name: "Alpha High",
+			},
+			{
+				Id:   2,
+				Name: "Beta High",
+			},
+		},
+
 		wantPairingsHTMLContains: []string{
 			"AA1", "BB1", "AA2", "BB2", "Room 101", "Room 102", "Jane Judge",
 			"Public Forum Round #4", "Lincoln Douglas Round #4",
@@ -286,6 +309,17 @@ func entryCountsScenario() e2eScenario {
 		},
 
 		wantSummary: Summary{TournamentCount: 1, RoundCount: 0},
+
+		wantSchools: []School{
+			{
+				Id:   1,
+				Name: "Alpha High",
+			},
+			{
+				Id:   2,
+				Name: "Beta High",
+			},
+		},
 
 		wantStatusHTMLContains: []string{
 			`<td style="color: green; font-weight: bold;">Alpha High</td>`,

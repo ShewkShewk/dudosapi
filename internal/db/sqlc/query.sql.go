@@ -36,9 +36,9 @@ func (q *Queries) GetCompletedRoundCount(ctx context.Context) (int64, error) {
 }
 
 const getEventSchoolCounts = `-- name: GetEventSchoolCounts :many
-WITH active_entry_students AS (SELECT en.id       AS entry_id,
-                                      en.event_id AS event_id,
-                                      st.id       AS student_id,
+WITH active_entry_students AS (SELECT en.id        AS entry_id,
+                                      en.event_id  AS event_id,
+                                      st.id        AS student_id,
                                       st.school_id AS school_id
                                FROM entries en
                                         JOIN student_entries sen ON sen.entry_id = en.id
@@ -50,12 +50,12 @@ WITH active_entry_students AS (SELECT en.id       AS entry_id,
                              COUNT(DISTINCT student_id) AS student_count
                       FROM active_entry_students
                       GROUP BY event_id)
-SELECT ev.id                        AS event_id,
-       ev.name                      AS event_name,
-       et.entry_count               AS event_entry_count,
-       et.student_count             AS event_student_count,
-       sc.id                        AS school_id,
-       sc.name                      AS school_name,
+SELECT ev.id                          AS event_id,
+       ev.name                        AS event_name,
+       et.entry_count                 AS event_entry_count,
+       et.student_count               AS event_student_count,
+       sc.id                          AS school_id,
+       sc.name                        AS school_name,
        COUNT(DISTINCT aes.entry_id)   AS school_entry_count,
        COUNT(DISTINCT aes.student_id) AS school_student_count
 FROM active_entry_students aes
@@ -318,6 +318,31 @@ func (q *Queries) GetSchoolStatus(ctx context.Context, tournamentID int32) ([]Ge
 	for rows.Next() {
 		var i GetSchoolStatusRow
 		if err := rows.Scan(&i.SchoolID, &i.SchoolName, &i.CheckedIn); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSchools = `-- name: GetSchools :many
+SELECT id, name
+FROM schools
+`
+
+func (q *Queries) GetSchools(ctx context.Context) ([]School, error) {
+	rows, err := q.db.Query(ctx, getSchools)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []School
+	for rows.Next() {
+		var i School
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
