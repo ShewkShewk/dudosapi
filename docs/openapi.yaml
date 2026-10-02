@@ -28,6 +28,8 @@ tags:
     description: Importing tournaments and reading back their pairings, check-ins and entry counts.
   - name: summary
     description: Counts across every imported tournament.
+  - name: schools
+    description: Every school in the database, across all imported tournaments.
 
 paths:
   /tournaments:
@@ -178,6 +180,32 @@ paths:
               schema:
                 type: string
                 example: unable to get summary
+
+  /schools:
+    get:
+      tags: [schools]
+      operationId: listSchools
+      summary: List every school with its check-in and student counts
+      description: |
+        Returns every school in the database, including schools with no
+        remaining tournament (for example, after the only tournament they
+        attended was deleted) - those report `0` for both counts rather than
+        being omitted. Counts are global, not scoped to a single tournament.
+      responses:
+        "200":
+          description: |
+            Schools ordered by name. A school with no stored name is returned
+            with `name` as `""` and sorts after all named schools; schools with
+            the same name are in no particular order. Always an array, `[]`
+            when there are no schools.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/School"
+        "500":
+          $ref: "#/components/responses/InternalErrorEmpty"
 
 components:
   securitySchemes:
@@ -428,3 +456,29 @@ components:
       type: string
       description: Tabroom's last-update time converted to America/Chicago, formatted `YYYY-MM-DD h:mmAM`.
       example: 2026-09-26 8:18AM
+
+    School:
+      type: object
+      required: [id, name, tournamentCount, studentCount]
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+        tournamentCount:
+          type: integer
+          format: int64
+          description: |
+            Imported tournaments this school was checked in to (`on_site`) as
+            of each tournament's most recent import. Tournaments the school
+            registered for but did not check in to are not counted. Never
+            `null`; `0` when there are none.
+        studentCount:
+          type: integer
+          format: int64
+          description: |
+            Students currently attributed to this school, across every
+            imported tournament, whether or not they had an active entry. A
+            student is attributed to the school from the most recent import
+            that included them. Never `null`; `0` when there are none.
