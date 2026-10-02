@@ -175,8 +175,10 @@ func getSchools(ctx context.Context, queries *sqlc.Queries) ([]School, error) {
 	results := make([]School, len(getSchoolsResult))
 	for i, result := range getSchoolsResult {
 		results[i] = School{
-			Id:   result.ID,
-			Name: result.Name.String,
+			Id:              result.SchoolID,
+			Name:            result.SchoolName.String,
+			TournamentCount: int(result.TournamentCount),
+			StudentCount:    int(result.StudentCount),
 		}
 	}
 	return results, nil

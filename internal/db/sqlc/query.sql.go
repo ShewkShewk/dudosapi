@@ -329,20 +329,46 @@ func (q *Queries) GetSchoolStatus(ctx context.Context, tournamentID int32) ([]Ge
 }
 
 const getSchools = `-- name: GetSchools :many
-SELECT id, name
+WITH school_tournament_count AS (SELECT school_entries.school_id,
+                                        COUNT(*) AS count
+                                 FROM school_entries
+                                 WHERE school_entries.on_site IS TRUE
+                                 GROUP BY school_entries.school_id),
+     school_student_count AS (SELECT school_id AS id, COUNT(*) AS count FROM students GROUP BY school_id)
+SELECT schools.id                                 AS school_id,
+       schools.name                               AS school_name,
+       COALESCE(school_tournament_count.count, 0) AS tournament_count,
+       COALESCE(school_student_count.count, 0)    AS student_count
 FROM schools
+         LEFT JOIN school_tournament_count
+                   ON schools.id = school_tournament_count.school_id
+         LEFT JOIN school_student_count
+                   ON schools.id = school_student_count.id
+ORDER BY school_name
 `
 
-func (q *Queries) GetSchools(ctx context.Context) ([]School, error) {
+type GetSchoolsRow struct {
+	SchoolID        int32
+	SchoolName      pgtype.Text
+	TournamentCount int64
+	StudentCount    int64
+}
+
+func (q *Queries) GetSchools(ctx context.Context) ([]GetSchoolsRow, error) {
 	rows, err := q.db.Query(ctx, getSchools)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []School
+	var items []GetSchoolsRow
 	for rows.Next() {
-		var i School
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		var i GetSchoolsRow
+		if err := rows.Scan(
+			&i.SchoolID,
+			&i.SchoolName,
+			&i.TournamentCount,
+			&i.StudentCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

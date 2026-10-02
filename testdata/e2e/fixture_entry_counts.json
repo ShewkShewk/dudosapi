@@ -1,0 +1,71 @@
+{
+  "name": "Entry Count Invitational",
+  "start": "2026-08-01 09:00:00",
+  "backup_created": "2026-08-01T18:05:00",
+  "categories": [
+    {
+      "judges": [],
+      "events": [
+        {
+          "id": "301",
+          "name": "Policy",
+          "type": "debate",
+          "rounds": []
+        },
+        {
+          "id": "302",
+          "name": "World Schools",
+          "type": "wsdc",
+          "rounds": []
+        },
+        {
+          "id": "303",
+          "name": "Original Oratory",
+          "type": "speech",
+          "rounds": []
+        }
+      ]
+    }
+  ],
+  "schools": [
+    {
+      "chapter": 1,
+      "code": "AH",
+      "name": "Alpha High",
+      "onsite": 1,
+      "students": [
+        { "id": "11", "chapter": 1, "first": "Alice", "middle": "", "last": "Anderson", "grad_year": 2027 },
+        { "id": "12", "chapter": 1, "first": "Amir", "middle": "", "last": "Abbott", "grad_year": 2027 },
+        { "id": "13", "chapter": 1, "first": "Ava", "middle": "", "last": "Adams", "grad_year": 2028 }
+      ],
+      "entries": [
+        { "id": "310", "event": 301, "code": "Alpha AA", "active": 1, "students": ["11", "12"] },
+        { "id": "311", "event": 301, "code": "Alpha/Beta Hybrid AB", "active": 1, "students": ["13", "21"] },
+        { "id": "330", "event": 303, "code": "Alpha OO", "active": 1, "students": ["11"] }
+      ]
+    },
+    {
+      "chapter": 2,
+      "code": "BH",
+      "name": "Beta High",
+      "onsite": 0,
+      "students": [
+        { "id": "21", "chapter": 2, "first": "Bob", "middle": "", "last": "Baker", "grad_year": 2027 },
+        { "id": "22", "chapter": 2, "first": "Bea", "middle": "", "last": "Brooks", "grad_year": 2028 }
+      ],
+      "entries": [
+        { "id": "320", "event": 301, "code": "Beta BB", "active": 0, "students": ["22"] },
+        { "id": "321", "event": 302, "code": "Beta WS", "active": 1, "students": ["21", "22"] }
+      ]
+    }
+  ],
+  "sites": [
+    {
+      "id": "1",
+      "name": "Main Site",
+      "rooms": [
+        { "id": "1", "name": "Room 101" }
+      ]
+    }
+  ]
+}

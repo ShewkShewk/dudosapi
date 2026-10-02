@@ -93,6 +93,8 @@ type TournamentEventSchoolCounts struct {
 }
 
 type School struct {
-	Id   int32  `json:"id"`
-	Name string `json:"name"`
+	Id              int32  `json:"id"`
+	Name            string `json:"name"`
+	TournamentCount int    `json:"tournamentCount"`
+	StudentCount    int    `json:"studentCount"`
 }

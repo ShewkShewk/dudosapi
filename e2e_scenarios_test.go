@@ -105,12 +105,16 @@ func goldenPathScenario() e2eScenario {
 
 		wantSchools: []School{
 			{
-				Id:   1,
-				Name: "Alpha High",
+				Id:              1,
+				Name:            "Alpha High",
+				TournamentCount: 1,
+				StudentCount:    1,
 			},
 			{
-				Id:   2,
-				Name: "Beta High",
+				Id:              2,
+				Name:            "Beta High",
+				TournamentCount: 0,
+				StudentCount:    1,
 			},
 		},
 
@@ -218,12 +222,16 @@ func multiEventMultiRoundScenario() e2eScenario {
 
 		wantSchools: []School{
 			{
-				Id:   1,
-				Name: "Alpha High",
+				Id:              1,
+				Name:            "Alpha High",
+				TournamentCount: 1,
+				StudentCount:    2,
 			},
 			{
-				Id:   2,
-				Name: "Beta High",
+				Id:              2,
+				Name:            "Beta High",
+				TournamentCount: 0,
+				StudentCount:    2,
 			},
 		},
 
@@ -250,6 +258,20 @@ func multiEventMultiRoundScenario() e2eScenario {
 func multipleTournamentsScenario() e2eScenarioSequence {
 	second := multiEventMultiRoundScenario()
 	second.wantSummary = Summary{TournamentCount: 2, RoundCount: 9}
+	second.wantSchools = []School{
+		{
+			Id:              1,
+			Name:            "Alpha High",
+			TournamentCount: 2,
+			StudentCount:    2,
+		},
+		{
+			Id:              2,
+			Name:            "Beta High",
+			TournamentCount: 0,
+			StudentCount:    2,
+		},
+	}
 	return e2eScenarioSequence{
 		name:      "multiple tournaments imported in sequence",
 		scenarios: []e2eScenario{goldenPathScenario(), second},
@@ -312,12 +334,16 @@ func entryCountsScenario() e2eScenario {
 
 		wantSchools: []School{
 			{
-				Id:   1,
-				Name: "Alpha High",
+				Id:              1,
+				Name:            "Alpha High",
+				TournamentCount: 1,
+				StudentCount:    3,
 			},
 			{
-				Id:   2,
-				Name: "Beta High",
+				Id:              2,
+				Name:            "Beta High",
+				TournamentCount: 0,
+				StudentCount:    2,
 			},
 		},
 

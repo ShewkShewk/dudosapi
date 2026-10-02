@@ -241,5 +241,20 @@ GROUP BY ev.id, ev.name, et.entry_count, et.student_count, sc.id, sc.name
 ORDER BY ev.name, ev.id, sc.name, sc.id;
 
 -- name: GetSchools :many
-SELECT id, name
-FROM schools;
+WITH school_tournament_count AS (SELECT school_entries.school_id,
+                                        COUNT(*) AS count
+                                 FROM school_entries
+                                 WHERE school_entries.on_site IS TRUE
+                                 GROUP BY school_entries.school_id),
+     school_student_count AS (SELECT school_id AS id, COUNT(*) AS count FROM students GROUP BY school_id)
+SELECT schools.id                                 AS school_id,
+       schools.name                               AS school_name,
+       COALESCE(school_tournament_count.count, 0) AS tournament_count,
+       COALESCE(school_student_count.count, 0)    AS student_count
+FROM schools
+         LEFT JOIN school_tournament_count
+                   ON schools.id = school_tournament_count.school_id
+         LEFT JOIN school_student_count
+                   ON schools.id = school_student_count.id
+ORDER BY school_name;
+
