@@ -241,7 +241,7 @@ FROM matchups_with_ballots
          LEFT JOIN entries AS neg_entries ON neg_team = neg_entries.id
          LEFT JOIN rooms ON room_id = rooms.id
          LEFT JOIN judges_aggregated ON matchups_with_ballots.section_id = judges_aggregated.section_id
-ORDER BY room_name
+ORDER BY flight, room_name
 `
 
 type GetPairingsWithBallotsRow struct {
