@@ -110,6 +110,40 @@ func (q *Queries) GetEventSchoolCounts(ctx context.Context, tournamentID pgtype.
 	return items, nil
 }
 
+const getEvents = `-- name: GetEvents :many
+SELECT id,
+       name                                                                            AS event_name,
+       (SELECT COUNT(*) FROM speaker_awards WHERE speaker_awards.event_id = events.id) AS speaker_awards_count
+FROM events
+WHERE events.tournament_id = $1
+`
+
+type GetEventsRow struct {
+	ID                 int32
+	EventName          pgtype.Text
+	SpeakerAwardsCount int64
+}
+
+func (q *Queries) GetEvents(ctx context.Context, tournamentID pgtype.Int4) ([]GetEventsRow, error) {
+	rows, err := q.db.Query(ctx, getEvents, tournamentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEventsRow
+	for rows.Next() {
+		var i GetEventsRow
+		if err := rows.Scan(&i.ID, &i.EventName, &i.SpeakerAwardsCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLatestPublishedRoundsPerEvent = `-- name: GetLatestPublishedRoundsPerEvent :many
 SELECT DISTINCT ON (events.name) rounds.event_id   AS event_id,
                                  events.name       AS event_name,

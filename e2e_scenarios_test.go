@@ -19,6 +19,7 @@ type e2eScenario struct {
 	wantEventSchoolCounts TournamentEventSchoolCounts
 	wantSummary           Summary
 	wantSchools           []School
+	wantEvents            []Event
 
 	wantPairingsHTMLContains []string
 	wantStatusHTMLContains   []string
@@ -115,6 +116,14 @@ func goldenPathScenario() e2eScenario {
 				Name:            "Beta High",
 				TournamentCount: 0,
 				StudentCount:    1,
+			},
+		},
+
+		wantEvents: []Event{
+			{
+				Id:                 1,
+				Name:               "Public Forum",
+				SpeakerAwardsCount: 1,
 			},
 		},
 
@@ -235,6 +244,19 @@ func multiEventMultiRoundScenario() e2eScenario {
 			},
 		},
 
+		wantEvents: []Event{
+			{
+				Id:                 101,
+				Name:               "Public Forum",
+				SpeakerAwardsCount: 1,
+			},
+			{
+				Id:                 102,
+				Name:               "Lincoln Douglas",
+				SpeakerAwardsCount: 0,
+			},
+		},
+
 		wantPairingsHTMLContains: []string{
 			"AA1", "BB1", "AA2", "BB2", "Room 101", "Room 102", "Jane Judge",
 			"Public Forum Round #4", "Lincoln Douglas Round #4",
@@ -344,6 +366,19 @@ func entryCountsScenario() e2eScenario {
 				Name:            "Beta High",
 				TournamentCount: 0,
 				StudentCount:    2,
+			},
+		},
+
+		wantEvents: []Event{
+			{
+				Id:                 301,
+				Name:               "Policy",
+				SpeakerAwardsCount: 0,
+			},
+			{
+				Id:                 302,
+				Name:               "World Schools",
+				SpeakerAwardsCount: 0,
 			},
 		},
 

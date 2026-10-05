@@ -37,6 +37,7 @@ func NewServer(config *Config) (http.Handler, error) {
 	}
 	queries := sqlc.New(dbConn)
 	mux.Handle("GET /tournaments", handleGetTournaments(tb, queries))
+	mux.Handle("GET /tournaments/{id}/events", handleGetEvents(queries))
 	mux.Handle("GET /tournaments/{id}/schools/status", handleGetTournamentSchoolsStatus(queries))
 	mux.Handle("GET /tournaments/{id}/events/schools", handleGetTournamentEventSchoolCounts(queries))
 	mux.Handle("POST /tournaments/{id}/import", handleImportTournament(tb, dbConn, queries, storageClient))
@@ -81,6 +82,24 @@ func handleGetSchools(queries *sqlc.Queries) http.HandlerFunc {
 		err = encode(w, r, http.StatusOK, result)
 		if err != nil {
 			log.Printf("handleGetSchools error encoding result %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func handleGetEvents(queries *sqlc.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid tournament id", http.StatusBadRequest)
+			return
+		}
+		tournId := int32(id)
+		result, err := getEvents(r.Context(), queries, tournId)
+		err = encode(w, r, http.StatusOK, result)
+		if err != nil {
+			log.Printf("handleGetEvents error encoding result %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

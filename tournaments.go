@@ -184,6 +184,23 @@ func getSchools(ctx context.Context, queries *sqlc.Queries) ([]School, error) {
 	return results, nil
 }
 
+func getEvents(ctx context.Context, queries *sqlc.Queries, tournId int32) ([]Event, error) {
+	getEventResult, err := queries.GetEvents(ctx, pgtype.Int4{Int32: tournId, Valid: true})
+	if err != nil {
+		log.Printf("getEvents unable to get events from DB %v", err)
+		return nil, err
+	}
+	results := make([]Event, len(getEventResult))
+	for i, result := range getEventResult {
+		results[i] = Event{
+			Id:                 result.ID,
+			Name:               result.EventName.String,
+			SpeakerAwardsCount: int(result.SpeakerAwardsCount),
+		}
+	}
+	return results, nil
+}
+
 func toPairing(row sqlc.GetPairingsWithBallotsRow) (*Pairing, error) {
 	var sectionId int
 	if row.SectionID.Valid {
