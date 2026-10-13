@@ -104,3 +104,9 @@ type Event struct {
 	Name               string `json:"name"`
 	SpeakerAwardsCount int    `json:"speakerAwardsCount"`
 }
+
+type Award struct {
+	Rank        int32  `json:"rank"`
+	StudentName string `json:"studentName"`
+	SchoolName  string `json:"schoolName"`
+}

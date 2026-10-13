@@ -264,3 +264,15 @@ SELECT id,
        (SELECT COUNT(*) FROM speaker_awards WHERE speaker_awards.event_id = events.id) AS speaker_awards_count
 FROM events
 WHERE events.tournament_id = $1;
+
+-- name: GetSpeakerAwards :many
+SELECT speaker_awards.rank                                     as rank,
+       CONCAT_WS(' ', students.first_name, students.last_name) AS student_name,
+       schools.name                                            AS school_name
+FROM speaker_awards
+         JOIN students ON speaker_awards.student_id = students.id
+         JOIN schools ON students.school_id = schools.id
+WHERE tournament_id = $1
+  AND event_id = $2
+ORDER BY rank
+LIMIT $3;

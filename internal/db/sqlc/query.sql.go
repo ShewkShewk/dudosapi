@@ -413,6 +413,51 @@ func (q *Queries) GetSchools(ctx context.Context) ([]GetSchoolsRow, error) {
 	return items, nil
 }
 
+const getSpeakerAwards = `-- name: GetSpeakerAwards :many
+SELECT speaker_awards.rank                                     as rank,
+       CONCAT_WS(' ', students.first_name, students.last_name) AS student_name,
+       schools.name                                            AS school_name
+FROM speaker_awards
+         JOIN students ON speaker_awards.student_id = students.id
+         JOIN schools ON students.school_id = schools.id
+WHERE tournament_id = $1
+  AND event_id = $2
+ORDER BY rank
+LIMIT $3
+`
+
+type GetSpeakerAwardsParams struct {
+	TournamentID int32
+	EventID      int32
+	Limit        int32
+}
+
+type GetSpeakerAwardsRow struct {
+	Rank        int32
+	StudentName string
+	SchoolName  pgtype.Text
+}
+
+func (q *Queries) GetSpeakerAwards(ctx context.Context, arg GetSpeakerAwardsParams) ([]GetSpeakerAwardsRow, error) {
+	rows, err := q.db.Query(ctx, getSpeakerAwards, arg.TournamentID, arg.EventID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSpeakerAwardsRow
+	for rows.Next() {
+		var i GetSpeakerAwardsRow
+		if err := rows.Scan(&i.Rank, &i.StudentName, &i.SchoolName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTournament = `-- name: GetTournament :one
 SELECT id, date, name, updated_time
 FROM tournaments

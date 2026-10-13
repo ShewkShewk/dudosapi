@@ -201,6 +201,27 @@ func getEvents(ctx context.Context, queries *sqlc.Queries, tournId int32) ([]Eve
 	return results, nil
 }
 
+func getSpeakerAwards(ctx context.Context, queries *sqlc.Queries, tournId int32, eventId int32, limit int32) ([]Award, error) {
+	getSpeakerAwardsResult, err := queries.GetSpeakerAwards(ctx, sqlc.GetSpeakerAwardsParams{
+		TournamentID: tournId,
+		EventID:      eventId,
+		Limit:        limit,
+	})
+	if err != nil {
+		log.Printf("getSpeakerAwards unable to get speaker awards from DB %v", err)
+		return nil, err
+	}
+	results := make([]Award, len(getSpeakerAwardsResult))
+	for i, result := range getSpeakerAwardsResult {
+		results[i] = Award{
+			Rank:        result.Rank,
+			StudentName: result.StudentName,
+			SchoolName:  result.SchoolName.String,
+		}
+	}
+	return results, nil
+}
+
 func toPairing(row sqlc.GetPairingsWithBallotsRow) (*Pairing, error) {
 	var sectionId int
 	if row.SectionID.Valid {
