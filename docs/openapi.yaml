@@ -161,6 +161,33 @@ paths:
         "500":
           $ref: "#/components/responses/InternalErrorEmpty"
 
+  /tournaments/{id}/events:
+    get:
+      tags: [tournaments]
+      operationId: listEvents
+      summary: List a tournament's events with their speaker award counts
+      description: |
+        An unknown tournament id is not an error: the response is `200` with
+        `[]`.
+
+        A failed database lookup is also not reported as an error: the response
+        is `200` with a `null` body.
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: |
+            The tournament's events, in no particular order. `[]` when it has
+            none; `null` when the database lookup failed.
+          content:
+            application/json:
+              schema:
+                type: [array, "null"]
+                items:
+                  $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/InvalidTournamentId"
+
   /tournaments/{tournId}/events/{eventId}/awards/speakers:
     get:
       tags: [tournaments]
@@ -504,6 +531,25 @@ components:
           type: integer
           format: int64
           description: This school's students on those entries.
+
+    Event:
+      type: object
+      required: [id, name, speakerAwardsCount]
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Tabroom event id.
+        name:
+          type: string
+          description: '`""` when the event has no stored name.'
+          example: Public Forum
+        speakerAwardsCount:
+          type: integer
+          description: |
+            Speaker awards stored for the event. Includes awards whose student
+            was not imported, which `/awards/speakers` omits, so this can exceed
+            the number of awards that endpoint returns. `0` when there are none.
 
     SpeakerAward:
       type: object
