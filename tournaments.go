@@ -229,7 +229,7 @@ func getEntryAwards(ctx context.Context, queries *sqlc.Queries, tournId int32, e
 		RowLimit:     limit,
 	})
 	if err != nil {
-		log.Printf("getEntryAwards unable to get speaker awards from DB %v", err)
+		log.Printf("getEntryAwards unable to get entry awards from DB %v", err)
 		return nil, err
 	}
 	results := make([]EntryAward, len(getEntryAwardsResult))
