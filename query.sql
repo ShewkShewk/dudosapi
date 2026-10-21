@@ -282,3 +282,18 @@ WHERE tournament_id = $1
   AND event_id = $2
 ORDER BY rank
 LIMIT $3;
+
+-- name: GetEntryAwards :many
+SELECT ea.rank,
+       e.code                                             AS entry_code,
+       string_agg(DISTINCT s.name, ' / ' ORDER BY s.name) AS school_names
+FROM entry_awards ea
+         JOIN entries e ON e.id = ea.entry_id
+         LEFT JOIN student_entries se ON se.entry_id = ea.entry_id
+         LEFT JOIN students st ON st.id = se.student_id
+         LEFT JOIN schools s ON s.id = st.school_id
+WHERE ea.tournament_id = @tournament_id
+  AND ea.event_id = @event_id
+GROUP BY ea.rank, e.code
+ORDER BY ea.rank
+LIMIT @row_limit;

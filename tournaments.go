@@ -201,7 +201,7 @@ func getEvents(ctx context.Context, queries *sqlc.Queries, tournId int32) ([]Eve
 	return results, nil
 }
 
-func getSpeakerAwards(ctx context.Context, queries *sqlc.Queries, tournId int32, eventId int32, limit int32) ([]Award, error) {
+func getSpeakerAwards(ctx context.Context, queries *sqlc.Queries, tournId int32, eventId int32, limit int32) ([]SpeakerAward, error) {
 	getSpeakerAwardsResult, err := queries.GetSpeakerAwards(ctx, sqlc.GetSpeakerAwardsParams{
 		TournamentID: tournId,
 		EventID:      eventId,
@@ -211,12 +211,33 @@ func getSpeakerAwards(ctx context.Context, queries *sqlc.Queries, tournId int32,
 		log.Printf("getSpeakerAwards unable to get speaker awards from DB %v", err)
 		return nil, err
 	}
-	results := make([]Award, len(getSpeakerAwardsResult))
+	results := make([]SpeakerAward, len(getSpeakerAwardsResult))
 	for i, result := range getSpeakerAwardsResult {
-		results[i] = Award{
+		results[i] = SpeakerAward{
 			Rank:        result.Rank,
 			StudentName: result.StudentName,
 			SchoolName:  result.SchoolName.String,
+		}
+	}
+	return results, nil
+}
+
+func getEntryAwards(ctx context.Context, queries *sqlc.Queries, tournId int32, eventId int32, limit int32) ([]EntryAward, error) {
+	getEntryAwardsResult, err := queries.GetEntryAwards(ctx, sqlc.GetEntryAwardsParams{
+		TournamentID: tournId,
+		EventID:      eventId,
+		RowLimit:     limit,
+	})
+	if err != nil {
+		log.Printf("getEntryAwards unable to get speaker awards from DB %v", err)
+		return nil, err
+	}
+	results := make([]EntryAward, len(getEntryAwardsResult))
+	for i, result := range getEntryAwardsResult {
+		results[i] = EntryAward{
+			Rank:       result.Rank,
+			EntryName:  result.EntryCode.String,
+			SchoolName: string(result.SchoolNames),
 		}
 	}
 	return results, nil

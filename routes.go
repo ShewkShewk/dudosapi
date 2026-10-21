@@ -39,6 +39,7 @@ func NewServer(config *Config) (http.Handler, error) {
 	mux.Handle("GET /tournaments", handleGetTournaments(tb, queries))
 	mux.Handle("GET /tournaments/{id}/events", handleGetEvents(queries))
 	mux.Handle("GET /tournaments/{tournId}/events/{eventId}/awards/speakers", handleGetSpeakerAwards(queries))
+	mux.Handle("GET /tournaments/{tournId}/events/{eventId}/awards/entries", handleGetEntryAwards(queries))
 	mux.Handle("GET /tournaments/{id}/schools/status", handleGetTournamentSchoolsStatus(queries))
 	mux.Handle("GET /tournaments/{id}/events/schools", handleGetTournamentEventSchoolCounts(queries))
 	mux.Handle("POST /tournaments/{id}/import", handleImportTournament(tb, dbConn, queries, storageClient))
@@ -139,6 +140,44 @@ func handleGetSpeakerAwards(queries *sqlc.Queries) http.HandlerFunc {
 		err = encode(w, r, http.StatusOK, result)
 		if err != nil {
 			log.Printf("handleGetSpeakerAwards error encoding result %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func handleGetEntryAwards(queries *sqlc.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("tournId"))
+		if err != nil {
+			http.Error(w, "invalid tournament id", http.StatusBadRequest)
+			return
+		}
+		tournId := int32(id)
+		id, err = strconv.Atoi(r.PathValue("eventId"))
+		if err != nil {
+			http.Error(w, "invalid event id", http.StatusBadRequest)
+			return
+		}
+		eventId := int32(id)
+		limitParameter := r.URL.Query().Get("limit")
+		if limitParameter == "" {
+			limitParameter = "100"
+		}
+		limit, err := strconv.Atoi(limitParameter)
+		if err != nil || limit < 0 {
+			http.Error(w, "invalid limit parameter", http.StatusBadRequest)
+			return
+		}
+		result, err := getEntryAwards(r.Context(), queries, tournId, eventId, int32(limit))
+		if err != nil {
+			log.Printf("error trying to get entry awards from db %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = encode(w, r, http.StatusOK, result)
+		if err != nil {
+			log.Printf("handleGetEntryAwards error encoding result %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

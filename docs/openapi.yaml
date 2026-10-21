@@ -79,7 +79,7 @@ paths:
       tags: [tournaments]
       operationId: deleteTournament
       summary: Delete an imported tournament and everything that belongs to it
-      description: Cascades to the tournament's events, entries, rounds, judges, school check-ins and speaker awards. Deleting a tournament that was never imported also succeeds. Published GCS pages are not touched.
+      description: Cascades to the tournament's events, entries, rounds, judges, school check-ins, speaker awards and entry awards. Deleting a tournament that was never imported also succeeds. Published GCS pages are not touched.
       parameters:
         - $ref: "#/components/parameters/TournamentId"
       responses:
@@ -241,6 +241,72 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/SpeakerAward"
+        "400":
+          description: A path segment is not an integer, or `limit` is not an integer or is negative.
+          content:
+            text/plain:
+              schema:
+                type: string
+                enum:
+                  - invalid tournament id
+                  - invalid event id
+                  - invalid limit parameter
+        "500":
+          description: The database lookup failed, including for a `limit` above the int32 range that wraps negative. Empty body; details are only in the server log.
+
+  /tournaments/{tournId}/events/{eventId}/awards/entries:
+    get:
+      tags: [tournaments]
+      operationId: getEntryAwards
+      summary: Entry awards (prelim seeds) for one event, in rank order
+      description: |
+        Returns the event's "Prelim Seeds" result set from its last import.
+        An award is omitted if its entry was not imported with the
+        tournament.
+
+        A tournament or event id that does not exist, or an event id that
+        belongs to a different tournament, is not an error: the response is
+        `200` with `[]`.
+      parameters:
+        - name: tournId
+          in: path
+          required: true
+          description: Tabroom tournament id.
+          schema:
+            type: integer
+            format: int32
+            example: 40950
+        - name: eventId
+          in: path
+          required: true
+          description: Tabroom event id.
+          schema:
+            type: integer
+            format: int32
+        - name: limit
+          in: query
+          required: false
+          description: |
+            Maximum number of awards to return, taken from the top of the
+            rankings. An empty value is treated as absent. `0` returns `[]`.
+            A negative value is a `400`. Values above the int32 range are not
+            rejected but truncated to int32, so they can wrap: `2147483648`
+            becomes negative and fails the lookup with a `500`, and
+            `4294967296` becomes `0` and returns `[]`.
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: |
+            Awards ordered by `rank`, ascending (ranks are unique within an
+            event). Always an array, `[]` when there are none.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntryAward"
         "400":
           description: A path segment is not an integer, or `limit` is not an integer or is negative.
           content:
@@ -565,6 +631,25 @@ components:
         schoolName:
           type: string
           description: The student's school, as of the most recent import that included them. `""` when the school has no stored name.
+
+    EntryAward:
+      type: object
+      required: [rank, entryName, schoolName]
+      properties:
+        rank:
+          type: integer
+          format: int32
+          example: 1
+        entryName:
+          type: string
+          description: The entry's code. `""` when the entry has no stored code.
+        schoolName:
+          type: string
+          description: |
+            The distinct schools of the entry's students, as of the most recent
+            import that included each student, sorted alphabetically and joined
+            with `" / "` (e.g. a hybrid entry). Schools with no stored name are
+            skipped. `""` when no named school is found.
 
     Summary:
       type: object

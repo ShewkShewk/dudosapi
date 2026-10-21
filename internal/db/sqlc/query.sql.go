@@ -35,6 +35,54 @@ func (q *Queries) GetCompletedRoundCount(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const getEntryAwards = `-- name: GetEntryAwards :many
+SELECT ea.rank,
+       e.code                                             AS entry_code,
+       string_agg(DISTINCT s.name, ' / ' ORDER BY s.name) AS school_names
+FROM entry_awards ea
+         JOIN entries e ON e.id = ea.entry_id
+         LEFT JOIN student_entries se ON se.entry_id = ea.entry_id
+         LEFT JOIN students st ON st.id = se.student_id
+         LEFT JOIN schools s ON s.id = st.school_id
+WHERE ea.tournament_id = $1
+  AND ea.event_id = $2
+GROUP BY ea.rank, e.code
+ORDER BY ea.rank
+LIMIT $3
+`
+
+type GetEntryAwardsParams struct {
+	TournamentID int32
+	EventID      int32
+	RowLimit     int32
+}
+
+type GetEntryAwardsRow struct {
+	Rank        int32
+	EntryCode   pgtype.Text
+	SchoolNames []byte
+}
+
+func (q *Queries) GetEntryAwards(ctx context.Context, arg GetEntryAwardsParams) ([]GetEntryAwardsRow, error) {
+	rows, err := q.db.Query(ctx, getEntryAwards, arg.TournamentID, arg.EventID, arg.RowLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEntryAwardsRow
+	for rows.Next() {
+		var i GetEntryAwardsRow
+		if err := rows.Scan(&i.Rank, &i.EntryCode, &i.SchoolNames); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEventSchoolCounts = `-- name: GetEventSchoolCounts :many
 WITH active_entry_students AS (SELECT en.id        AS entry_id,
                                       en.event_id  AS event_id,
