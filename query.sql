@@ -125,6 +125,12 @@ WHERE events.tournament_id = $1
   AND published = TRUE
 ORDER BY events.name, rounds.number DESC;
 
+-- name: InsertEntryAwards :batchexec
+INSERT INTO entry_awards(tournament_id, event_id, rank, entry_id)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (tournament_id, event_id, rank) DO UPDATE
+    SET event_id = EXCLUDED.event_id;
+
 -- name: GetPairingsWithBallots :many
 WITH unique_section_judges AS (SELECT DISTINCT ON (ballots.section_id, judges.id) ballots.section_id,
                                                                                   judges.id,

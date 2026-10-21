@@ -73,7 +73,7 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 		log.Printf("importTournament: unable to import rounds for %v %v", tourn.Name, err)
 		return err
 	}
-	err = importSpeakerAwards(ctx, qtx, tournId, tourn, eventMap)
+	err = importAwards(ctx, qtx, tournId, tourn, eventMap)
 	if err != nil {
 		log.Printf("importTournament: unable to import speaker awards for %v %v", tourn.Name, err)
 		return err
@@ -86,8 +86,9 @@ func importTournament(ctx context.Context, conn *pgxpool.Pool, queries *sqlc.Que
 	return nil
 }
 
-func importSpeakerAwards(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData, eventMap map[int]any) error {
+func importAwards(ctx context.Context, qtx *sqlc.Queries, tournId int32, tourn *tbapi.TournamentData, eventMap map[int]any) error {
 	var speakerAwardsBatch []sqlc.InsertSpeakerAwardsParams
+	var entryAwardsBatch []sqlc.InsertEntryAwardsParams
 	for _, category := range tourn.Categories {
 		for _, event := range category.Events {
 			eventId, err := strconv.Atoi(event.Id)
@@ -113,12 +114,35 @@ func importSpeakerAwards(ctx context.Context, qtx *sqlc.Queries, tournId int32, 
 							},
 						})
 					}
+				} else if resultSet.Label == "Prelim Seeds" {
+					for _, result := range resultSet.Results {
+						entryAwardsBatch = append(entryAwardsBatch, sqlc.InsertEntryAwardsParams{
+							TournamentID: tournId,
+							EventID:      int32(eventId),
+							Rank:         int32(result.Rank),
+							EntryID: pgtype.Int4{
+								Int32: int32(result.Entry),
+								Valid: true,
+							},
+						})
+					}
 				}
 			}
 		}
 	}
 	speakerAwardsResults := qtx.InsertSpeakerAwards(ctx, speakerAwardsBatch)
-	return batchExecErr(speakerAwardsResults.Exec, speakerAwardsResults.Close)
+	err := batchExecErr(speakerAwardsResults.Exec, speakerAwardsResults.Close)
+	if err != nil {
+		log.Printf("importAwards: unable to commit speaker awards for for %v %v", tourn.Name, err)
+		return err
+	}
+	entryAwardsResults := qtx.InsertEntryAwards(ctx, entryAwardsBatch)
+	err = batchExecErr(entryAwardsResults.Exec, entryAwardsResults.Close)
+	if err != nil {
+		log.Printf("importAwards: unable to commit entry awards for for %v %v", tourn.Name, err)
+		return err
+	}
+	return nil
 }
 
 func importSitesAndRooms(ctx context.Context, qtx *sqlc.Queries, tourn *tbapi.TournamentData) error {

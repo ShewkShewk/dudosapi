@@ -115,6 +115,13 @@ type Entry struct {
 	Active       pgtype.Bool
 }
 
+type EntryAward struct {
+	TournamentID int32
+	EventID      int32
+	Rank         int32
+	EntryID      pgtype.Int4
+}
+
 type Event struct {
 	ID           int32
 	TournamentID pgtype.Int4

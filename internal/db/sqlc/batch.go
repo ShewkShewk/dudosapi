@@ -145,6 +145,62 @@ func (b *InsertEntryBatchResults) Close() error {
 	return b.br.Close()
 }
 
+const insertEntryAwards = `-- name: InsertEntryAwards :batchexec
+INSERT INTO entry_awards(tournament_id, event_id, rank, entry_id)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (tournament_id, event_id, rank) DO UPDATE
+    SET event_id = EXCLUDED.event_id
+`
+
+type InsertEntryAwardsBatchResults struct {
+	br     pgx.BatchResults
+	tot    int
+	closed bool
+}
+
+type InsertEntryAwardsParams struct {
+	TournamentID int32
+	EventID      int32
+	Rank         int32
+	EntryID      pgtype.Int4
+}
+
+func (q *Queries) InsertEntryAwards(ctx context.Context, arg []InsertEntryAwardsParams) *InsertEntryAwardsBatchResults {
+	batch := &pgx.Batch{}
+	for _, a := range arg {
+		vals := []interface{}{
+			a.TournamentID,
+			a.EventID,
+			a.Rank,
+			a.EntryID,
+		}
+		batch.Queue(insertEntryAwards, vals...)
+	}
+	br := q.db.SendBatch(ctx, batch)
+	return &InsertEntryAwardsBatchResults{br, len(arg), false}
+}
+
+func (b *InsertEntryAwardsBatchResults) Exec(f func(int, error)) {
+	defer b.br.Close()
+	for t := 0; t < b.tot; t++ {
+		if b.closed {
+			if f != nil {
+				f(t, ErrBatchAlreadyClosed)
+			}
+			continue
+		}
+		_, err := b.br.Exec()
+		if f != nil {
+			f(t, err)
+		}
+	}
+}
+
+func (b *InsertEntryAwardsBatchResults) Close() error {
+	b.closed = true
+	return b.br.Close()
+}
+
 const insertEvent = `-- name: InsertEvent :batchexec
 INSERT INTO events(id, tournament_id, name)
 VALUES ($1, $2, $3)
