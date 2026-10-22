@@ -267,7 +267,8 @@ ORDER BY school_name;
 -- name: GetEvents :many
 SELECT id,
        name                                                                            AS event_name,
-       (SELECT COUNT(*) FROM speaker_awards WHERE speaker_awards.event_id = events.id) AS speaker_awards_count
+       (SELECT COUNT(*) FROM speaker_awards WHERE speaker_awards.event_id = events.id) AS speaker_awards_count,
+       (SELECT COUNT(*) FROM entry_awards WHERE entry_awards.event_id = events.id)     AS entry_awards_count
 FROM events
 WHERE events.tournament_id = $1;
 

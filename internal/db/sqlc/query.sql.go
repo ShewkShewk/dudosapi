@@ -161,7 +161,8 @@ func (q *Queries) GetEventSchoolCounts(ctx context.Context, tournamentID pgtype.
 const getEvents = `-- name: GetEvents :many
 SELECT id,
        name                                                                            AS event_name,
-       (SELECT COUNT(*) FROM speaker_awards WHERE speaker_awards.event_id = events.id) AS speaker_awards_count
+       (SELECT COUNT(*) FROM speaker_awards WHERE speaker_awards.event_id = events.id) AS speaker_awards_count,
+       (SELECT COUNT(*) FROM entry_awards WHERE entry_awards.event_id = events.id)     AS entry_awards_count
 FROM events
 WHERE events.tournament_id = $1
 `
@@ -170,6 +171,7 @@ type GetEventsRow struct {
 	ID                 int32
 	EventName          pgtype.Text
 	SpeakerAwardsCount int64
+	EntryAwardsCount   int64
 }
 
 func (q *Queries) GetEvents(ctx context.Context, tournamentID pgtype.Int4) ([]GetEventsRow, error) {
@@ -181,7 +183,12 @@ func (q *Queries) GetEvents(ctx context.Context, tournamentID pgtype.Int4) ([]Ge
 	var items []GetEventsRow
 	for rows.Next() {
 		var i GetEventsRow
-		if err := rows.Scan(&i.ID, &i.EventName, &i.SpeakerAwardsCount); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventName,
+			&i.SpeakerAwardsCount,
+			&i.EntryAwardsCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

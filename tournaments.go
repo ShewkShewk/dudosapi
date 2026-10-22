@@ -196,6 +196,7 @@ func getEvents(ctx context.Context, queries *sqlc.Queries, tournId int32) ([]Eve
 			Id:                 result.ID,
 			Name:               result.EventName.String,
 			SpeakerAwardsCount: int(result.SpeakerAwardsCount),
+			EntryAwardsCount:   int(result.EntryAwardsCount),
 		}
 	}
 	return results, nil

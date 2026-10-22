@@ -165,7 +165,7 @@ paths:
     get:
       tags: [tournaments]
       operationId: listEvents
-      summary: List a tournament's events with their speaker award counts
+      summary: List a tournament's events with their speaker and entry award counts
       description: |
         An unknown tournament id is not an error: the response is `200` with
         `[]`.
@@ -600,7 +600,7 @@ components:
 
     Event:
       type: object
-      required: [id, name, speakerAwardsCount]
+      required: [id, name, speakerAwardsCount, entryAwardsCount]
       properties:
         id:
           type: integer
@@ -616,6 +616,13 @@ components:
             Speaker awards stored for the event. Includes awards whose student
             was not imported, which `/awards/speakers` omits, so this can exceed
             the number of awards that endpoint returns. `0` when there are none.
+        entryAwardsCount:
+          type: integer
+          description: |
+            Entry awards (prelim seeds) stored for the event. Includes awards
+            whose entry was not imported, which `/awards/entries` omits, and is
+            not capped by that endpoint's `limit`, so this can exceed the number
+            of awards that endpoint returns. `0` when there are none.
 
     SpeakerAward:
       type: object
