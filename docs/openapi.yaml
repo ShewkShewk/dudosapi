@@ -134,6 +134,39 @@ paths:
         "500":
           $ref: "#/components/responses/InternalErrorEmpty"
 
+  /tournaments/{id}/schools/results:
+    get:
+      tags: [tournaments]
+      operationId: getSchoolResults
+      summary: Per-school entry counts and round win/loss records, by event
+      description: |
+        Counts only **active** entries; inactive entries are omitted along with
+        their ballots, as are entries with no linked students. A school with no
+        active entries in the tournament is omitted entirely.
+
+        An entry whose students come from more than one school counts, and adds
+        its wins and losses, once for **each** of those schools.
+
+        An unknown tournament id, or a tournament with no active entries, is not
+        an error: the response is `200` with a `null` body.
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: |
+            One element per school, in no particular order, each with its events
+            in no particular order. `null` when there are no schools to report.
+          content:
+            application/json:
+              schema:
+                type: [array, "null"]
+                items:
+                  $ref: "#/components/schemas/TournamentSchoolResult"
+        "400":
+          $ref: "#/components/responses/InvalidTournamentId"
+        "500":
+          description: The database lookup failed. Empty body; details are only in the server log.
+
   /tournaments/{id}/events/schools:
     get:
       tags: [tournaments]
@@ -597,6 +630,62 @@ components:
           type: integer
           format: int64
           description: This school's students on those entries.
+
+    TournamentSchoolResult:
+      type: object
+      required: [schoolId, schoolName, events]
+      properties:
+        schoolId:
+          type: integer
+          format: int32
+        schoolName:
+          type: string
+          description: '`""` when the school has no stored name.'
+        events:
+          type: array
+          minItems: 1
+          description: Events in which the school has at least one active entry.
+          items:
+            $ref: "#/components/schemas/SchoolEventResult"
+
+    SchoolEventResult:
+      type: object
+      required: [id, name, entryCount, studentCount, entryWins, entryLosses]
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Tabroom event id.
+        name:
+          type: string
+          description: '`""` when the event has no stored name.'
+          example: Public Forum
+        entryCount:
+          type: integer
+          format: int32
+          description: Active entries in this event with at least one student from this school.
+        studentCount:
+          type: integer
+          format: int32
+          description: This school's students on those entries.
+        entryWins:
+          type: integer
+          format: int32
+          description: |
+            Rounds won by those entries, summed across entries. Each round is
+            decided from the entry's own ballots in that section: it is a win
+            when more of them are `WIN` or `BYE` than `LOSS` or `FFT`. So a
+            one-judge round is decided by its single ballot, and an elimination
+            panel by majority. Rounds with no decided ballots, or with a tied
+            ballot count (e.g. 1-1 with a ballot still outstanding), count as
+            neither a win nor a loss. When two of the school's entries meet,
+            the school gets one win and one loss. `0` when there are none.
+        entryLosses:
+          type: integer
+          format: int32
+          description: |
+            Rounds lost by those entries: more `LOSS` or `FFT` ballots than
+            `WIN` or `BYE`, decided as for `entryWins`. `0` when there are none.
 
     Event:
       type: object

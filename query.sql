@@ -298,3 +298,48 @@ WHERE ea.tournament_id = @tournament_id
 GROUP BY ea.rank, e.code
 ORDER BY ea.rank
 LIMIT @row_limit;
+
+-- name: GetTournamentSchoolResults :many
+WITH school_event_entries AS (
+    -- one row per (school, event, entry), however many of the school's students are on it
+    SELECT DISTINCT students.school_id, entries.event_id, entries.id AS entry_id
+    FROM student_entries
+             JOIN entries ON student_entries.entry_id = entries.id
+             JOIN students ON student_entries.student_id = students.id
+    WHERE entries.tournament_id = @tournament_id
+      AND entries.active),
+     entry_rounds AS (
+         -- one row per entry per round (section), with that entry's ballot split
+         SELECT see.school_id,
+                see.event_id,
+                COUNT(*) FILTER (WHERE ballots.result IN ('WIN', 'BYE'))  AS ballots_won,
+                COUNT(*) FILTER (WHERE ballots.result IN ('LOSS', 'FFT')) AS ballots_lost
+         FROM school_event_entries see
+                  JOIN ballots ON ballots.entry_id = see.entry_id
+         GROUP BY see.school_id, see.event_id, see.entry_id, ballots.section_id),
+     school_records AS (SELECT school_id,
+                               event_id,
+                               COUNT(*) FILTER (WHERE ballots_won > ballots_lost) AS wins,
+                               COUNT(*) FILTER (WHERE ballots_lost > ballots_won) AS losses
+                        FROM entry_rounds
+                        GROUP BY school_id, event_id),
+     school_counts AS (SELECT students.school_id                         AS school_id,
+                              schools.name                               AS school_name,
+                              entries.event_id                           AS event_id,
+                              events.name                                AS event_name,
+                              COUNT(DISTINCT student_entries.entry_id)   AS entry_count,
+                              COUNT(DISTINCT student_entries.student_id) AS student_count
+                       FROM student_entries
+                                JOIN entries ON student_entries.entry_id = entries.id
+                                JOIN students ON student_entries.student_id = students.id
+                                JOIN schools ON students.school_id = schools.id
+                                JOIN events ON entries.event_id = events.id
+                       WHERE entries.tournament_id = @tournament_id
+                         AND entries.active
+                       GROUP BY students.school_id, schools.name, entries.event_id, events.name)
+SELECT sc.*,
+       COALESCE(sr.wins, 0)   AS wins,
+       COALESCE(sr.losses, 0) AS losses
+FROM school_counts sc
+         LEFT JOIN school_records sr
+                   ON sr.school_id = sc.school_id AND sr.event_id = sc.event_id;

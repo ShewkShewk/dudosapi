@@ -550,6 +550,92 @@ func (q *Queries) GetTournamentCount(ctx context.Context) (int64, error) {
 	return tournament_count, err
 }
 
+const getTournamentSchoolResults = `-- name: GetTournamentSchoolResults :many
+WITH school_event_entries AS (
+    -- one row per (school, event, entry), however many of the school's students are on it
+    SELECT DISTINCT students.school_id, entries.event_id, entries.id AS entry_id
+    FROM student_entries
+             JOIN entries ON student_entries.entry_id = entries.id
+             JOIN students ON student_entries.student_id = students.id
+    WHERE entries.tournament_id = $1
+      AND entries.active),
+     entry_rounds AS (
+         -- one row per entry per round (section), with that entry's ballot split
+         SELECT see.school_id,
+                see.event_id,
+                COUNT(*) FILTER (WHERE ballots.result IN ('WIN', 'BYE'))  AS ballots_won,
+                COUNT(*) FILTER (WHERE ballots.result IN ('LOSS', 'FFT')) AS ballots_lost
+         FROM school_event_entries see
+                  JOIN ballots ON ballots.entry_id = see.entry_id
+         GROUP BY see.school_id, see.event_id, see.entry_id, ballots.section_id),
+     school_records AS (SELECT school_id,
+                               event_id,
+                               COUNT(*) FILTER (WHERE ballots_won > ballots_lost) AS wins,
+                               COUNT(*) FILTER (WHERE ballots_lost > ballots_won) AS losses
+                        FROM entry_rounds
+                        GROUP BY school_id, event_id),
+     school_counts AS (SELECT students.school_id                         AS school_id,
+                              schools.name                               AS school_name,
+                              entries.event_id                           AS event_id,
+                              events.name                                AS event_name,
+                              COUNT(DISTINCT student_entries.entry_id)   AS entry_count,
+                              COUNT(DISTINCT student_entries.student_id) AS student_count
+                       FROM student_entries
+                                JOIN entries ON student_entries.entry_id = entries.id
+                                JOIN students ON student_entries.student_id = students.id
+                                JOIN schools ON students.school_id = schools.id
+                                JOIN events ON entries.event_id = events.id
+                       WHERE entries.tournament_id = $1
+                         AND entries.active
+                       GROUP BY students.school_id, schools.name, entries.event_id, events.name)
+SELECT sc.school_id, sc.school_name, sc.event_id, sc.event_name, sc.entry_count, sc.student_count,
+       COALESCE(sr.wins, 0)   AS wins,
+       COALESCE(sr.losses, 0) AS losses
+FROM school_counts sc
+         LEFT JOIN school_records sr
+                   ON sr.school_id = sc.school_id AND sr.event_id = sc.event_id
+`
+
+type GetTournamentSchoolResultsRow struct {
+	SchoolID     pgtype.Int4
+	SchoolName   pgtype.Text
+	EventID      pgtype.Int4
+	EventName    pgtype.Text
+	EntryCount   int64
+	StudentCount int64
+	Wins         int64
+	Losses       int64
+}
+
+func (q *Queries) GetTournamentSchoolResults(ctx context.Context, tournamentID pgtype.Int4) ([]GetTournamentSchoolResultsRow, error) {
+	rows, err := q.db.Query(ctx, getTournamentSchoolResults, tournamentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTournamentSchoolResultsRow
+	for rows.Next() {
+		var i GetTournamentSchoolResultsRow
+		if err := rows.Scan(
+			&i.SchoolID,
+			&i.SchoolName,
+			&i.EventID,
+			&i.EventName,
+			&i.EntryCount,
+			&i.StudentCount,
+			&i.Wins,
+			&i.Losses,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const loadTournament = `-- name: LoadTournament :exec
 INSERT INTO tournaments (id, raw)
 VALUES ($1, $2)

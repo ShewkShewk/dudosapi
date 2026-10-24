@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -242,6 +244,36 @@ func getEntryAwards(ctx context.Context, queries *sqlc.Queries, tournId int32, e
 		}
 	}
 	return results, nil
+}
+
+func getTournamentSchoolResults(ctx context.Context, queries *sqlc.Queries, tournId int32) ([]*TournamentSchoolResult, error) {
+	results, err := queries.GetTournamentSchoolResults(ctx, pgtype.Int4{Int32: tournId, Valid: true})
+	if err != nil {
+		log.Printf("getTournamentSchoolResults unable to get tournament school results from DB %v", err)
+		return nil, err
+	}
+	schoolToEventMap := make(map[int32]*TournamentSchoolResult)
+	for _, result := range results {
+		schoolId := result.SchoolID.Int32
+		schoolResult, ok := schoolToEventMap[schoolId]
+		if !ok {
+			schoolResult = &TournamentSchoolResult{
+				SchoolId:   schoolId,
+				SchoolName: result.SchoolName.String,
+				Events:     make([]TournamentSchoolEventResult, 0),
+			}
+		}
+		schoolResult.Events = append(schoolResult.Events, TournamentSchoolEventResult{
+			Id:           result.EventID.Int32,
+			Name:         result.EventName.String,
+			EntryCount:   int32(result.EntryCount),
+			StudentCount: int32(result.StudentCount),
+			EntryWins:    int32(result.Wins),
+			EntryLosses:  int32(result.Losses),
+		})
+		schoolToEventMap[schoolId] = schoolResult
+	}
+	return slices.Collect(maps.Values(schoolToEventMap)), nil
 }
 
 func toPairing(row sqlc.GetPairingsWithBallotsRow) (*Pairing, error) {
