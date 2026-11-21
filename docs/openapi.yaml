@@ -30,6 +30,8 @@ tags:
     description: Counts across every imported tournament.
   - name: schools
     description: Every school in the database, across all imported tournaments.
+  - name: reports
+    description: Reports computed across every imported tournament.
 
 paths:
   /tournaments:
@@ -398,6 +400,35 @@ paths:
                   $ref: "#/components/schemas/School"
         "500":
           $ref: "#/components/responses/InternalErrorEmpty"
+
+  /reports/students/participation:
+    get:
+      tags: [reports]
+      operationId: getStudentParticipationReport
+      summary: Every student with the tournaments they were entered in
+      description: |
+        One element per student who is on at least one entry in an imported
+        tournament; students with no entries are omitted. Covers every imported
+        tournament, not a single one, and includes inactive entries.
+
+        Each student appears once, under the school they are currently
+        attributed to (from the most recent import that included them), even if
+        they attended earlier tournaments for a different school.
+      responses:
+        "200":
+          description: |
+            Students ordered by `schoolName`, then `studentLastName`, then
+            `studentFirstName`, then `studentId`. Students whose school has no
+            stored name have `schoolName` `""` and sort after all named schools.
+            Always an array, `[]` when there are no students.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StudentParticipationReport"
+        "500":
+          description: The database lookup failed. Empty body; details are only in the server log.
 
 components:
   securitySchemes:
@@ -790,3 +821,52 @@ components:
             imported tournament, whether or not they had an active entry. A
             student is attributed to the school from the most recent import
             that included them. Never `null`; `0` when there are none.
+
+    StudentParticipationReport:
+      type: object
+      required: [studentId, studentFirstName, studentLastName, schoolName, tournamentCount, tournaments]
+      properties:
+        studentId:
+          type: integer
+          format: int32
+        studentFirstName:
+          type: string
+        studentLastName:
+          type: string
+        schoolName:
+          type: string
+          description: The student's current school. `""` when the school has no stored name.
+        tournamentCount:
+          type: integer
+          minimum: 1
+          description: Distinct tournaments the student was entered in. Always equal to the length of `tournaments`.
+        tournaments:
+          type: array
+          minItems: 1
+          description: |
+            One element per tournament, even when the student had more than one
+            entry there (e.g. in two events). Ordered by the tournament's start
+            date, then `tournamentId`; tournaments with no stored start date
+            come last.
+          items:
+            $ref: "#/components/schemas/TournamentParticipationEntry"
+
+    TournamentParticipationEntry:
+      type: object
+      required: [tournamentId, tournamentName, active]
+      properties:
+        tournamentId:
+          type: integer
+          format: int32
+          description: Tabroom tournament id.
+          example: 40950
+        tournamentName:
+          type: string
+          description: '`""` when the tournament has no stored name.'
+          example: 2026 DUDA Middle School Fall Workshop
+        active:
+          type: boolean
+          description: |
+            `true` when at least one of the student's entries at this
+            tournament is active. `false` otherwise, including when none of
+            those entries has a stored active flag.

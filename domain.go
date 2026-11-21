@@ -132,3 +132,18 @@ type TournamentSchoolEventResult struct {
 	EntryWins    int32  `json:"entryWins"`
 	EntryLosses  int32  `json:"entryLosses"`
 }
+
+type StudentParticipationReport struct {
+	StudentId               int32                          `json:"studentId"`
+	StudentFirstName        string                         `json:"studentFirstName"`
+	StudentLastName         string                         `json:"studentLastName"`
+	SchoolName              string                         `json:"schoolName"`
+	TournamentCount         int                            `json:"tournamentCount"`
+	TournamentParticipation []TournamentParticipationEntry `json:"tournaments"`
+}
+
+type TournamentParticipationEntry struct {
+	TournamentId   int32  `json:"tournamentId"`
+	TournamentName string `json:"tournamentName"`
+	Active         bool   `json:"active"`
+}

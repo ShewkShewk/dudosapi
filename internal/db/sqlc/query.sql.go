@@ -513,6 +513,66 @@ func (q *Queries) GetSpeakerAwards(ctx context.Context, arg GetSpeakerAwardsPara
 	return items, nil
 }
 
+const getStudentParticipationReport = `-- name: GetStudentParticipationReport :many
+WITH student_tournaments AS (SELECT student_entries.student_id,
+                                    entries.tournament_id,
+                                    BOOL_OR(entries.active) AS active -- active if any of their entries there is active
+                             FROM student_entries
+                                      JOIN entries ON student_entries.entry_id = entries.id
+                             GROUP BY student_entries.student_id, entries.tournament_id)
+SELECT students.id                                         AS student_id,
+       students.first_name                                 AS student_first_name,
+       students.last_name                                  AS student_last_name,
+       schools.name                                        AS school_name,
+       COUNT(*)                                            AS tournament_count,
+       JSON_AGG(JSON_BUILD_OBJECT('tournamentId', tournaments.id,
+                                  'tournamentName', tournaments.name,
+                                  'active', st.active)
+                ORDER BY tournaments.date, tournaments.id) AS tournament_participation
+FROM student_tournaments st
+         JOIN students ON st.student_id = students.id
+         JOIN tournaments ON st.tournament_id = tournaments.id
+         JOIN schools ON students.school_id = schools.id
+GROUP BY students.id, students.first_name, students.last_name, schools.name
+ORDER BY schools.name, students.last_name, students.first_name, students.id
+`
+
+type GetStudentParticipationReportRow struct {
+	StudentID               int32
+	StudentFirstName        string
+	StudentLastName         string
+	SchoolName              pgtype.Text
+	TournamentCount         int64
+	TournamentParticipation []byte
+}
+
+func (q *Queries) GetStudentParticipationReport(ctx context.Context) ([]GetStudentParticipationReportRow, error) {
+	rows, err := q.db.Query(ctx, getStudentParticipationReport)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetStudentParticipationReportRow
+	for rows.Next() {
+		var i GetStudentParticipationReportRow
+		if err := rows.Scan(
+			&i.StudentID,
+			&i.StudentFirstName,
+			&i.StudentLastName,
+			&i.SchoolName,
+			&i.TournamentCount,
+			&i.TournamentParticipation,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTournament = `-- name: GetTournament :one
 SELECT id, date, name, updated_time
 FROM tournaments

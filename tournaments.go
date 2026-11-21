@@ -276,6 +276,30 @@ func getTournamentSchoolResults(ctx context.Context, queries *sqlc.Queries, tour
 	return slices.Collect(maps.Values(schoolToEventMap)), nil
 }
 
+func getStudentParticipationReport(ctx context.Context, queries *sqlc.Queries) ([]StudentParticipationReport, error) {
+	results, err := queries.GetStudentParticipationReport(ctx)
+	if err != nil {
+		log.Printf("getStudentParticipationReport unable to get student participation report from DB %v", err)
+		return nil, err
+	}
+	toReturn := make([]StudentParticipationReport, len(results))
+	for i, row := range results {
+		var tps []TournamentParticipationEntry
+		if err := json.Unmarshal(row.TournamentParticipation, &tps); err != nil {
+			return nil, fmt.Errorf("getStudentParticipationReport, unable to deserialize tournaments: %w", err)
+		}
+		toReturn[i] = StudentParticipationReport{
+			StudentId:               row.StudentID,
+			StudentFirstName:        row.StudentFirstName,
+			StudentLastName:         row.StudentLastName,
+			SchoolName:              row.SchoolName.String,
+			TournamentCount:         int(row.TournamentCount),
+			TournamentParticipation: tps,
+		}
+	}
+	return toReturn, nil
+}
+
 func toPairing(row sqlc.GetPairingsWithBallotsRow) (*Pairing, error) {
 	var sectionId int
 	if row.SectionID.Valid {

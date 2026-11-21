@@ -36,6 +36,7 @@ func NewServer(config *Config) (http.Handler, error) {
 		return nil, err
 	}
 	queries := sqlc.New(dbConn)
+	mux.Handle("GET /reports/students/participation", handleGetStudentParticipationAwards(queries))
 	mux.Handle("GET /tournaments", handleGetTournaments(tb, queries))
 	mux.Handle("GET /tournaments/{id}/events", handleGetEvents(queries))
 	mux.Handle("GET /tournaments/{tournId}/events/{eventId}/awards/speakers", handleGetSpeakerAwards(queries))
@@ -49,6 +50,23 @@ func NewServer(config *Config) (http.Handler, error) {
 	mux.Handle("GET /summary", handleGetSummary(queries))
 	mux.Handle("GET /schools", handleGetSchools(queries))
 	return mux, nil
+}
+
+func handleGetStudentParticipationAwards(queries *sqlc.Queries) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		result, err := getStudentParticipationReport(r.Context(), queries)
+		if err != nil {
+			log.Printf("handleGetStudentParticipationAwards error while retrieving report: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = encode(w, r, http.StatusOK, result)
+		if err != nil {
+			log.Printf("handleGetStudentParticipationAwards error encoding result %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
 }
 
 func handleGetTournamentSchoolsStatus(queries *sqlc.Queries) http.HandlerFunc {

@@ -343,3 +343,26 @@ SELECT sc.*,
 FROM school_counts sc
          LEFT JOIN school_records sr
                    ON sr.school_id = sc.school_id AND sr.event_id = sc.event_id;
+
+-- name: GetStudentParticipationReport :many
+WITH student_tournaments AS (SELECT student_entries.student_id,
+                                    entries.tournament_id,
+                                    BOOL_OR(entries.active) AS active -- active if any of their entries there is active
+                             FROM student_entries
+                                      JOIN entries ON student_entries.entry_id = entries.id
+                             GROUP BY student_entries.student_id, entries.tournament_id)
+SELECT students.id                                         AS student_id,
+       students.first_name                                 AS student_first_name,
+       students.last_name                                  AS student_last_name,
+       schools.name                                        AS school_name,
+       COUNT(*)                                            AS tournament_count,
+       JSON_AGG(JSON_BUILD_OBJECT('tournamentId', tournaments.id,
+                                  'tournamentName', tournaments.name,
+                                  'active', st.active)
+                ORDER BY tournaments.date, tournaments.id) AS tournament_participation
+FROM student_tournaments st
+         JOIN students ON st.student_id = students.id
+         JOIN tournaments ON st.tournament_id = tournaments.id
+         JOIN schools ON students.school_id = schools.id
+GROUP BY students.id, students.first_name, students.last_name, schools.name
+ORDER BY schools.name, students.last_name, students.first_name, students.id;
