@@ -34,4 +34,4 @@ jobs:
           migrate -version
 
       - name: Run migrations
-        run: migrate -source file://./db/migrations -database "postgres://myuser@mypassword@localhost:5432/dudos_duda?sslmode=disable" up
+        run: migrate -source file://./db/migrations -database "postgres://myuser:mypassword@localhost:5432/dudos_duda?sslmode=disable" up
