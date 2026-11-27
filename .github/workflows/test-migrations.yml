@@ -15,5 +15,6 @@ jobs:
 
       - name: Install migrate tool
         run: |
-          sudo apt-get update
-          sudo apt-get install migrate
+          curl -s https://github.com/golang-migrate/migrate/releases/download/v4.20.1/migrate.linux-amd64.deb
+          sudo dpkg -i migrate.linux-amd64.deb
+          migrate -version
